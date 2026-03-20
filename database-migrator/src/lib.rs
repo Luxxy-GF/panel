@@ -282,7 +282,7 @@ pub fn collect_embedded_extension_migrations(
     };
 
     for entry in dir.dirs() {
-        let up_sql = match entry.get_file("up.sql") {
+        let up_sql = match EXTENSION_MIGRATIONS.get_file(entry.path().join("up.sql")) {
             Some(file) => file.contents(),
             None => {
                 return Err(std::io::Error::new(
@@ -294,7 +294,7 @@ pub fn collect_embedded_extension_migrations(
                 ));
             }
         };
-        let down_sql = match entry.get_file("down.sql") {
+        let down_sql = match EXTENSION_MIGRATIONS.get_file(entry.path().join("down.sql")) {
             Some(file) => file.contents(),
             None => {
                 return Err(std::io::Error::new(
