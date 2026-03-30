@@ -6,15 +6,22 @@ mod get {
     use serde::Serialize;
     use shared::{
         GetState,
-        models::{nest_egg::NestEgg, user::GetPermissionManager},
+        models::{ByUuid, nest::Nest, nest_egg::NestEgg, user::GetPermissionManager},
         response::{ApiResponse, ApiResponseResult},
     };
     use std::collections::BTreeMap;
     use utoipa::ToSchema;
 
     #[derive(ToSchema, Serialize)]
+    struct ResponseNestEggGroup {
+        nest: shared::models::nest::AdminApiNest,
+        eggs: Vec<shared::models::nest_egg::AdminApiNestEgg>,
+    }
+
+    #[derive(ToSchema, Serialize)]
     struct Response {
-        nest_eggs: BTreeMap<uuid::Uuid, Vec<shared::models::nest_egg::AdminApiNestEgg>>,
+        #[schema(inline)]
+        nests: Vec<ResponseNestEggGroup>,
     }
 
     #[utoipa::path(get, path = "/", responses(
@@ -33,17 +40,22 @@ mod get {
                 .push(nest_egg.into_admin_api_object(&state.database));
         }
 
-        let mut map = BTreeMap::new();
+        let mut nests = Vec::new();
         for (nest_uuid, futures) in futures_map {
             let eggs = futures_util::stream::iter(futures)
                 .buffered(25)
                 .try_collect::<Vec<_>>()
                 .await?;
 
-            map.insert(nest_uuid, eggs);
+            nests.push(ResponseNestEggGroup {
+                nest: Nest::by_uuid_cached(&state.database, nest_uuid)
+                    .await?
+                    .into_admin_api_object(),
+                eggs,
+            });
         }
 
-        ApiResponse::new_serialized(Response { nest_eggs: map }).ok()
+        ApiResponse::new_serialized(Response { nests }).ok()
     }
 }
 
