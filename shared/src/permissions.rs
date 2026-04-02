@@ -8,8 +8,14 @@ use utoipa::ToSchema;
 
 #[derive(ToSchema, Serialize, Clone)]
 pub struct PermissionGroup {
-    description: &'static str,
-    permissions: IndexMap<&'static str, &'static str>,
+    pub description: &'static str,
+    pub permissions: IndexMap<&'static str, &'static str>,
+}
+
+impl PermissionGroup {
+    pub fn add_permission(&mut self, key: &'static str, description: &'static str) {
+        self.permissions.insert(key, description);
+    }
 }
 
 #[derive(ToSchema, Serialize)]

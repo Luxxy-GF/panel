@@ -171,6 +171,19 @@ impl ExtensionPermissionsBuilder {
         self
     }
 
+    /// Mutates a permission group in the user permissions.
+    pub fn mutate_user_permission_group(
+        mut self,
+        group_name: &'static str,
+        mutation: impl FnOnce(&mut PermissionGroup),
+    ) -> Self {
+        if let Some(group) = self.user_permissions.get_mut(group_name) {
+            mutation(group);
+        }
+
+        self
+    }
+
     /// Adds a permission group to the admin permissions.
     pub fn add_admin_permission_group(
         mut self,
@@ -182,6 +195,19 @@ impl ExtensionPermissionsBuilder {
         self
     }
 
+    /// Mutates a permission group in the admin permissions.
+    pub fn mutate_admin_permission_group(
+        mut self,
+        group_name: &'static str,
+        mutation: impl FnOnce(&mut PermissionGroup),
+    ) -> Self {
+        if let Some(group) = self.admin_permissions.get_mut(group_name) {
+            mutation(group);
+        }
+
+        self
+    }
+
     /// Adds a permission group to the server permissions.
     pub fn add_server_permission_group(
         mut self,
@@ -189,6 +215,19 @@ impl ExtensionPermissionsBuilder {
         group: PermissionGroup,
     ) -> Self {
         self.server_permissions.insert(group_name, group);
+
+        self
+    }
+
+    /// Mutates a permission group in the server permissions.
+    pub fn mutate_server_permission_group(
+        mut self,
+        group_name: &'static str,
+        mutation: impl FnOnce(&mut PermissionGroup),
+    ) -> Self {
+        if let Some(group) = self.server_permissions.get_mut(group_name) {
+            mutation(group);
+        }
 
         self
     }
