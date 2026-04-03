@@ -40,6 +40,16 @@ export default function App({ theme }: { theme: MantineThemeOverride }) {
     });
   }, []);
 
+  useEffect(() => {
+    if (settings?.app?.icon) {
+      const icons = document.getElementsByClassName('app-icon');
+
+      for (const icon of icons) {
+        (icon as HTMLLinkElement).href = settings.app.icon;
+      }
+    }
+  }, [settings?.app?.icon]);
+
   return Object.keys(settings).length > 0 ? (
     <ErrorBoundary>
       <MantineProvider theme={theme} forceColorScheme='dark' cssVariablesResolver={v8CssVariablesResolver}>
