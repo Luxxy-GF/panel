@@ -18,6 +18,7 @@ import { useGlobalStore } from './stores/global.ts';
 
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
+import '@gfazioli/mantine-window/styles.css';
 
 const queryClient = new QueryClient({
   defaultOptions: {

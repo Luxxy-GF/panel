@@ -93,3 +93,11 @@ export const useFileManager = () => {
   }
   return context;
 };
+
+export const getFileManager = (): FileManagerContextType => {
+  const context = FileManagerContext['_currentValue'] as FileManagerContextType | undefined;
+  if (!context) {
+    throw new Error('getFileManager must be used within a FileManagerProvider');
+  }
+  return context;
+};

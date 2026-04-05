@@ -1,36 +1,37 @@
-import { forwardRef, memo, useRef } from 'react';
+import { forwardRef, memo, RefObject, useMemo, useRef } from 'react';
 import { FileOpenMode } from 'shared/src/registries/pages/server/files.ts';
 import { z } from 'zod';
 import { ContextMenuToggle } from '@/elements/ContextMenu.tsx';
 import Checkbox from '@/elements/input/Checkbox.tsx';
 import { TableData, TableRow } from '@/elements/Table.tsx';
 import FormattedTimestamp from '@/elements/time/FormattedTimestamp.tsx';
+import { isOpenableFile } from '@/lib/files.ts';
 import { serverDirectoryEntrySchema } from '@/lib/schemas/server/files.ts';
 import { bytesToString } from '@/lib/size.ts';
 import FileRowContextMenu from '@/pages/server/files/FileRowContextMenu.tsx';
 import { useServerCan } from '@/plugins/usePermissions.ts';
-import { useFileManager } from '@/providers/FileManagerProvider.tsx';
+import { getFileManager } from '@/providers/contexts/fileManagerContext.ts';
 import FileMassContextMenu from './FileMassContextMenu.tsx';
 import FileRowIcon from './FileRowIcon.tsx';
 
 interface FileRowProps {
   file: z.infer<typeof serverDirectoryEntrySchema>;
   handleOpen: (openMode: FileOpenMode) => void;
-  openMode: FileOpenMode;
   isSelected: boolean;
   isActing: boolean;
-  multipleSelected: boolean;
+  multipleSelectedRef: RefObject<boolean>;
+  clickOnce: boolean;
+  preferPhysicalSize: boolean;
 }
 
 const FileRow = forwardRef<HTMLTableRowElement, FileRowProps>(function FileRow(
-  { file, handleOpen, openMode, isSelected, isActing, multipleSelected },
+  { file, handleOpen, isSelected, isActing, multipleSelectedRef, clickOnce, preferPhysicalSize },
   ref,
 ) {
   const canOpenActionBar = useServerCan(['files.read-content', 'files.archive', 'files.update', 'files.delete'], true);
-  const fileManagerContext = useFileManager();
   const canOpenFile = useServerCan('files.read-content');
-
-  const { doSelectFiles, addSelectedFile, removeSelectedFile, clickOnce, preferPhysicalSize } = fileManagerContext;
+  const openMode = useMemo(() => isOpenableFile(file, getFileManager()), [file]);
+  const { doSelectFiles, addSelectedFile, removeSelectedFile } = getFileManager();
 
   const toggleSelected = () => (isSelected ? removeSelectedFile(file) : addSelectedFile(file));
 
@@ -45,7 +46,7 @@ const FileRow = forwardRef<HTMLTableRowElement, FileRowProps>(function FileRow(
     if (e.shiftKey) {
       addSelectedFile(file);
     } else if (isSelected) {
-      if (multipleSelected) {
+      if (multipleSelectedRef.current) {
         doSelectFiles([file]);
       } else {
         removeSelectedFile(file);
@@ -64,7 +65,6 @@ const FileRow = forwardRef<HTMLTableRowElement, FileRowProps>(function FileRow(
     }, 250);
   };
 
-  // Determine background color based on state
   const getBgColor = () => {
     // if (isOver && isValidDropTarget) {
     //   return 'var(--mantine-color-green-light)';
@@ -120,7 +120,7 @@ const FileRow = forwardRef<HTMLTableRowElement, FileRowProps>(function FileRow(
 
               <TableData className='w-full max-w-0'>
                 <span className='flex items-center gap-4 leading-[100%] min-w-0' title={file.name}>
-                  <FileRowIcon className='shrink-0 text-gray-400' file={file} fileManagerContext={fileManagerContext} />
+                  <FileRowIcon className='shrink-0 text-gray-400' file={file} />
                   <span className='truncate'>{file.name}</span>
                 </span>
               </TableData>

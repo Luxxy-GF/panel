@@ -26,7 +26,7 @@ import FileSettings from '@/pages/server/files/FileSettings.tsx';
 import FileToolbar from '@/pages/server/files/FileToolbar.tsx';
 import FileUpload from '@/pages/server/files/FileUpload.tsx';
 import { useKeyboardShortcuts } from '@/plugins/useKeyboardShortcuts.ts';
-import { useFileManager } from '@/providers/contexts/fileManagerContext.ts';
+import { getFileManager, useFileManager } from '@/providers/contexts/fileManagerContext.ts';
 import { FileManagerProvider } from '@/providers/FileManagerProvider.tsx';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
@@ -75,6 +75,7 @@ function ServerFilesComponent() {
   const { addToast } = useToast();
   const [_, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const multipleSelectedRef = useRef(false);
   const typeAheadBuffer = useRef('');
   const typeAheadTimeout = useRef<ReturnType<typeof setTimeout>>(null);
   const fileManagerContext = useFileManager();
@@ -114,6 +115,8 @@ function ServerFilesComponent() {
         if (typeAheadTimeout.current) clearTimeout(typeAheadTimeout.current);
         typeAheadBuffer.current = '';
 
+        const fileManagerContext = getFileManager();
+
         openMode.handleOpen({
           server,
           fileManagerContext,
@@ -137,7 +140,7 @@ function ServerFilesComponent() {
         });
       }
     },
-    [server, fileManagerContext, navigate, setSearchParams],
+    [server, navigate, setSearchParams],
   );
 
   useEffect(() => {
@@ -169,6 +172,10 @@ function ServerFilesComponent() {
       if (typeAheadTimeout.current) clearTimeout(typeAheadTimeout.current);
     };
   }, [browsingEntries.data, openModal, doSelectFiles]);
+
+  useEffect(() => {
+    multipleSelectedRef.current = selectedFiles.size > 1;
+  }, [selectedFiles]);
 
   useKeyboardShortcuts({
     shortcuts: [
@@ -347,10 +354,11 @@ function ServerFilesComponent() {
                       ref={innerRef as Ref<HTMLTableRowElement>}
                       file={entry}
                       handleOpen={handleOpen}
-                      openMode={isOpenableFile(entry, fileManagerContext)}
                       isSelected={selectedFiles.has(entry)}
                       isActing={actingFiles.has(entry) && actingFilesSource === browsingDirectory}
-                      multipleSelected={selectedFiles.size > 1}
+                      multipleSelectedRef={multipleSelectedRef}
+                      clickOnce={fileManagerContext.clickOnce}
+                      preferPhysicalSize={fileManagerContext.preferPhysicalSize}
                     />
                   )}
                 </SelectionArea.Selectable>

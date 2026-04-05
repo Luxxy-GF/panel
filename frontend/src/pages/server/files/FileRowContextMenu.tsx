@@ -2,13 +2,11 @@ import {
   faAnglesUp,
   faCopy,
   faEnvelopesBulk,
-  faFile,
   faFileArrowDown,
   faFilePen,
   faFileShield,
   faFileZipper,
   faFingerprint,
-  faFolder,
   faInfoCircle,
   faListDots,
   faTrash,
@@ -109,7 +107,6 @@ export default function FileRowContextMenu({ file, openMode, children }: FileRow
             });
 
             addWindow(
-              file.file ? faFile : faFolder,
               file.name,
               <MemoryRouter initialEntries={[url.pathname + url.search]}>
                 <RouterRoutes isNormal={false} />

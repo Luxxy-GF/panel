@@ -4,12 +4,11 @@ import { memo } from 'react';
 import { z } from 'zod';
 import { isOpenableFile, isViewableArchive, isViewableImage } from '@/lib/files.ts';
 import { serverDirectoryEntrySchema } from '@/lib/schemas/server/files.ts';
-import { FileManagerContextType } from '@/providers/contexts/fileManagerContext.ts';
+import { getFileManager } from '@/providers/contexts/fileManagerContext.ts';
 
-function getFileIcon(
-  file: z.infer<typeof serverDirectoryEntrySchema>,
-  fileManagerContext: FileManagerContextType,
-): IconDefinition {
+function getFileIcon(file: z.infer<typeof serverDirectoryEntrySchema>): IconDefinition {
+  const fileManagerContext = getFileManager();
+
   for (const handler of window.extensionContext.extensionRegistry.pages.server.files.fileIconHandlers) {
     const icon = handler(file, fileManagerContext);
     if (icon) {
@@ -35,13 +34,11 @@ function getFileIcon(
 function FileRowIcon({
   file,
   className,
-  fileManagerContext,
 }: {
   file?: z.infer<typeof serverDirectoryEntrySchema> | null;
   className?: string;
-  fileManagerContext: FileManagerContextType;
 }) {
-  return <FontAwesomeIcon className={className} icon={file ? getFileIcon(file, fileManagerContext) : faFile} />;
+  return <FontAwesomeIcon className={className} icon={file ? getFileIcon(file) : faFile} />;
 }
 
 export default memo(FileRowIcon);

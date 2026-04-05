@@ -85,7 +85,6 @@ function Link({ to, end, icon, name, title = name }: LinkProps) {
           label: t('elements.sidebar.button.openInVirtualWindow', {}),
           onClick: () =>
             addWindow(
-              faWindowRestore,
               title || 'Window',
               <MemoryRouter initialEntries={[to]}>
                 <RouterRoutes isNormal={false} />
