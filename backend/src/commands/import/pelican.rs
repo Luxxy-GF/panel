@@ -1,10 +1,12 @@
-use super::{BASE64_ENGINE, collect_mappings, decrypt_laravel_value};
+use super::{
+    BASE64_ENGINE, collect_mappings, decrypt_laravel_value, is_datetime_column, is_sqlite_source,
+    process_table,
+};
 use anyhow::Context;
 use base64::Engine;
 use clap::{Args, FromArgMatches};
 use colored::Colorize;
 use compact_str::ToCompactString;
-use futures_util::StreamExt;
 use shared::models::database_host::DatabaseCredentials;
 use sqlx::Row;
 use sqlx::any::AnyPoolOptions;
@@ -42,32 +44,6 @@ fn derive_name_parts(username: &str) -> (compact_str::CompactString, compact_str
     let last = parts.next().unwrap_or_else(|| username.to_compact_string());
 
     (first, last)
-}
-
-#[inline]
-fn is_sqlite_source() -> bool {
-    matches!(
-        std::env::var("DB_CONNECTION")
-            .unwrap_or_else(|_| "mysql".to_string())
-            .trim_matches('"')
-            .to_ascii_lowercase()
-            .as_str(),
-        "sqlite" | "sqlite3"
-    )
-}
-
-#[inline]
-fn is_datetime_column(column: &str) -> bool {
-    matches!(
-        column,
-        "created_at"
-            | "updated_at"
-            | "deleted_at"
-            | "completed_at"
-            | "installed_at"
-            | "last_run_at"
-            | "next_run_at"
-    ) || column.ends_with("_at")
 }
 
 async fn connect_source_database_any(environment_path: &str) -> Result<SourcePool, anyhow::Error> {
@@ -220,115 +196,6 @@ fn source_bool(row: &SourceRow, column: &str) -> Result<bool, anyhow::Error> {
         value.trim().to_ascii_lowercase().as_str(),
         "1" | "true" | "yes" | "on"
     ))
-}
-
-async fn process_table<T, Fut: Future<Output = Result<T, anyhow::Error>>>(
-    source_database: &SourcePool,
-    table: &str,
-    sql_where: Option<&str>,
-    compute: impl Fn(Vec<SourceRow>) -> Fut,
-    page_size: usize,
-) -> Result<Vec<T>, anyhow::Error> {
-    let projection = if is_sqlite_source() {
-        let pragma_query = format!("PRAGMA table_info(`{table}`)");
-        let columns = sqlx::query(&pragma_query)
-            .fetch_all(source_database)
-            .await?;
-        columns
-            .into_iter()
-            .map(|column| {
-                let name: String = column.try_get("name")?;
-                Ok::<_, anyhow::Error>(if is_datetime_column(&name) {
-                    format!("CAST(`{name}` AS TEXT) AS `{name}`")
-                } else {
-                    format!("`{name}`")
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?
-            .join(", ")
-    } else {
-        "*".to_string()
-    };
-
-    let total: i64 = sqlx::query_scalar::<sqlx::Any, i64>(&format!(
-        "SELECT COUNT(*) FROM `{table}` {}",
-        if let Some(where_clause) = sql_where {
-            format!("WHERE {where_clause}")
-        } else {
-            String::new()
-        }
-    ))
-    .fetch_one(source_database)
-    .await
-    .context("failed to count total rows for table")?;
-
-    let query = format!(
-        "SELECT {projection} FROM `{table}` {}",
-        if let Some(where_clause) = sql_where {
-            format!("WHERE {where_clause}")
-        } else {
-            String::new()
-        }
-    );
-    let mut query_rows = sqlx::query(&query).fetch(source_database);
-
-    let mut processed_rows: usize = 0;
-    let mut results = Vec::new();
-    let mut rows = Vec::new();
-
-    loop {
-        rows.reserve_exact(page_size);
-        while let Some(row) = query_rows.next().await {
-            rows.push(row?);
-
-            if rows.len() >= page_size {
-                break;
-            }
-        }
-
-        if rows.is_empty() {
-            break;
-        }
-
-        let batch = std::mem::take(&mut rows);
-        let batch_len = batch.len();
-        let result = compute(batch).await?;
-
-        if std::mem::size_of::<T>() > 0 {
-            results.push(result);
-        }
-
-        processed_rows += batch_len;
-
-        let percent = if total > 0 {
-            (processed_rows as f64 / total as f64) * 100.0
-        } else {
-            100.0
-        };
-
-        let bar_width = 40;
-        let filled = if total > 0 {
-            (processed_rows as f64 / total as f64 * bar_width as f64).round() as usize
-        } else {
-            bar_width
-        };
-        let empty = bar_width.saturating_sub(filled);
-
-        tracing::info!(
-            "{} [{}{}] {:.2}% ({}/{})",
-            table,
-            "=".repeat(filled),
-            " ".repeat(empty),
-            percent,
-            processed_rows,
-            total
-        );
-    }
-
-    tracing::info!("");
-    results.shrink_to_fit();
-
-    Ok(results)
 }
 
 async fn source_query_rows(
