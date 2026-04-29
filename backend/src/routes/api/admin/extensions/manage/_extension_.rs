@@ -38,16 +38,6 @@ mod delete {
 
         permissions.has_admin_permission("extensions.manage")?;
 
-        let extensions = state.extensions.extensions().await;
-        let Some(extension) = extensions
-            .iter()
-            .find(|ext| ext.package_name == package_name)
-        else {
-            return ApiResponse::error("extension not found")
-                .with_status(StatusCode::NOT_FOUND)
-                .ok();
-        };
-
         let extension_identifier = extension.metadata_toml.get_package_identifier();
         if data.remove_migrations
             && let Ok(migrations) = tokio::task::spawn_blocking(move || {
