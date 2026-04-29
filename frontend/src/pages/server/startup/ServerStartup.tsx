@@ -156,15 +156,26 @@ export default function ServerStartup() {
                 <Popover.Dropdown>
                   <Select
                     data={[
-                      {
-                        label: t('common.custom', {}),
-                        value: '',
-                      },
+                      ...((!server.eggConfiguration?.startupAllowCustomStartupCommand &&
+                        Object.values(server.egg.startupCommands).every((value) => value !== command)) ||
+                      server.eggConfiguration?.startupAllowCustomStartupCommand
+                        ? [
+                            {
+                              label: t('common.custom', {}),
+                              value: '',
+                            },
+                          ]
+                        : []),
                       ...Object.entries(server.egg.startupCommands).map(([key, value]) => ({
                         value,
                         label: key,
                       })),
                     ]}
+                    disabled={
+                      !useServerCan('startup.command') ||
+                      (!server.eggConfiguration?.startupAllowCustomStartupCommand &&
+                        Object.values(server.egg.startupCommands).every((value) => value !== command))
+                    }
                     value={Object.values(server.egg.startupCommands).find((value) => value === command) || ''}
                     onChange={(value) => setCommand(value ?? '')}
                   />
