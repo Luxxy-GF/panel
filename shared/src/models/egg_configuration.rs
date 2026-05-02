@@ -393,6 +393,25 @@ impl ByUuid for EggConfiguration {
 
         Self::map(None, &row)
     }
+
+    async fn by_uuid_with_transaction(
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        uuid: uuid::Uuid,
+    ) -> Result<Self, crate::database::DatabaseError> {
+        let row = sqlx::query(&format!(
+            r#"
+            SELECT {}
+            FROM egg_configurations
+            WHERE egg_configurations.uuid = $1
+            "#,
+            Self::columns_sql(None)
+        ))
+        .bind(uuid)
+        .fetch_one(&mut **transaction)
+        .await?;
+
+        Self::map(None, &row)
+    }
 }
 
 #[derive(ToSchema, Deserialize, Validate)]
@@ -431,18 +450,16 @@ impl CreatableModel for EggConfiguration {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self, crate::database::DatabaseError> {
         options.validate()?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = InsertQueryBuilder::new("egg_configurations");
 
-        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
-            .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         query_builder
             .set("name", &options.name)
@@ -476,11 +493,9 @@ impl CreatableModel for EggConfiguration {
 
         let row = query_builder
             .returning(&Self::columns_sql(None))
-            .fetch_one(&mut *transaction)
+            .fetch_one(&mut **transaction)
             .await?;
         let egg_configuration = Self::map(None, &row)?;
-
-        transaction.commit().await?;
 
         Ok(egg_configuration)
     }
@@ -542,25 +557,18 @@ impl UpdatableModel for EggConfiguration {
         &UPDATE_LISTENERS
     }
 
-    async fn update(
+    async fn update_with_transaction(
         &mut self,
         state: &crate::State,
         mut options: Self::UpdateOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), crate::database::DatabaseError> {
         options.validate()?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = UpdateQueryBuilder::new("egg_configurations");
 
-        Self::run_update_handlers(
-            self,
-            &mut options,
-            &mut query_builder,
-            state,
-            &mut transaction,
-        )
-        .await?;
+        Self::run_update_handlers(self, &mut options, &mut query_builder, state, transaction)
+            .await?;
 
         query_builder
             .set("name", options.name.as_ref())
@@ -588,7 +596,7 @@ impl UpdatableModel for EggConfiguration {
             )
             .where_eq("uuid", self.uuid);
 
-        query_builder.execute(&mut *transaction).await?;
+        query_builder.execute(&mut **transaction).await?;
 
         if let Some(name) = options.name {
             self.name = name;
@@ -609,8 +617,6 @@ impl UpdatableModel for EggConfiguration {
             self.config_routes = config_routes;
         }
 
-        transaction.commit().await?;
-
         Ok(())
     }
 }
@@ -626,14 +632,13 @@ impl DeletableModel for EggConfiguration {
         &DELETE_LISTENERS
     }
 
-    async fn delete(
+    async fn delete_with_transaction(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), anyhow::Error> {
-        let mut transaction = state.database.write().begin().await?;
-
-        self.run_delete_handlers(&options, state, &mut transaction)
+        self.run_delete_handlers(&options, state, transaction)
             .await?;
 
         sqlx::query(
@@ -643,10 +648,8 @@ impl DeletableModel for EggConfiguration {
             "#,
         )
         .bind(self.uuid)
-        .execute(&mut *transaction)
+        .execute(&mut **transaction)
         .await?;
-
-        transaction.commit().await?;
 
         Ok(())
     }

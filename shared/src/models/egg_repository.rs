@@ -292,18 +292,16 @@ impl CreatableModel for EggRepository {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self::CreateResult, crate::database::DatabaseError> {
         options.validate()?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = InsertQueryBuilder::new("egg_repositories");
 
-        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
-            .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         query_builder
             .set("name", &options.name)
@@ -312,11 +310,9 @@ impl CreatableModel for EggRepository {
 
         let row = query_builder
             .returning(&Self::columns_sql(None))
-            .fetch_one(&mut *transaction)
+            .fetch_one(&mut **transaction)
             .await?;
         let egg_repository = Self::map(None, &row)?;
-
-        transaction.commit().await?;
 
         Ok(egg_repository)
     }
@@ -351,25 +347,18 @@ impl UpdatableModel for EggRepository {
         &UPDATE_LISTENERS
     }
 
-    async fn update(
+    async fn update_with_transaction(
         &mut self,
         state: &crate::State,
         mut options: Self::UpdateOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), crate::database::DatabaseError> {
         options.validate()?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = UpdateQueryBuilder::new("egg_repositories");
 
-        Self::run_update_handlers(
-            self,
-            &mut options,
-            &mut query_builder,
-            state,
-            &mut transaction,
-        )
-        .await?;
+        Self::run_update_handlers(self, &mut options, &mut query_builder, state, transaction)
+            .await?;
 
         query_builder
             .set("name", options.name.as_ref())
@@ -380,7 +369,7 @@ impl UpdatableModel for EggRepository {
             .set("git_repository", options.git_repository.as_ref())
             .where_eq("uuid", self.uuid);
 
-        query_builder.execute(&mut *transaction).await?;
+        query_builder.execute(&mut **transaction).await?;
 
         if let Some(name) = options.name {
             self.name = name;
@@ -391,8 +380,6 @@ impl UpdatableModel for EggRepository {
         if let Some(git_repository) = options.git_repository {
             self.git_repository = git_repository;
         }
-
-        transaction.commit().await?;
 
         Ok(())
     }
@@ -418,6 +405,25 @@ impl ByUuid for EggRepository {
 
         Self::map(None, &row)
     }
+
+    async fn by_uuid_with_transaction(
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        uuid: uuid::Uuid,
+    ) -> Result<Self, crate::database::DatabaseError> {
+        let row = sqlx::query(&format!(
+            r#"
+            SELECT {}
+            FROM egg_repositories
+            WHERE egg_repositories.uuid = $1
+            "#,
+            Self::columns_sql(None)
+        ))
+        .bind(uuid)
+        .fetch_one(&mut **transaction)
+        .await?;
+
+        Self::map(None, &row)
+    }
 }
 
 #[async_trait::async_trait]
@@ -431,14 +437,13 @@ impl DeletableModel for EggRepository {
         &DELETE_LISTENERS
     }
 
-    async fn delete(
+    async fn delete_with_transaction(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), anyhow::Error> {
-        let mut transaction = state.database.write().begin().await?;
-
-        self.run_delete_handlers(&options, state, &mut transaction)
+        self.run_delete_handlers(&options, state, transaction)
             .await?;
 
         sqlx::query(
@@ -448,10 +453,8 @@ impl DeletableModel for EggRepository {
             "#,
         )
         .bind(self.uuid)
-        .execute(&mut *transaction)
+        .execute(&mut **transaction)
         .await?;
-
-        transaction.commit().await?;
 
         Ok(())
     }

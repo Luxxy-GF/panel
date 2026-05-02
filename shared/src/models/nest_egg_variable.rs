@@ -342,18 +342,16 @@ impl CreatableModel for NestEggVariable {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self::CreateResult, crate::database::DatabaseError> {
         options.validate()?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = InsertQueryBuilder::new("nest_egg_variables");
 
-        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
-            .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         query_builder
             .set("egg_uuid", options.egg_uuid)
@@ -373,11 +371,9 @@ impl CreatableModel for NestEggVariable {
 
         let row = query_builder
             .returning(&Self::columns_sql(None))
-            .fetch_one(&mut *transaction)
+            .fetch_one(&mut **transaction)
             .await?;
         let nest_egg_variable = Self::map(None, &row)?;
-
-        transaction.commit().await?;
 
         Ok(nest_egg_variable)
     }
@@ -438,25 +434,18 @@ impl UpdatableModel for NestEggVariable {
         &UPDATE_LISTENERS
     }
 
-    async fn update(
+    async fn update_with_transaction(
         &mut self,
         state: &crate::State,
         mut options: Self::UpdateOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), crate::database::DatabaseError> {
         options.validate()?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = UpdateQueryBuilder::new("nest_egg_variables");
 
-        Self::run_update_handlers(
-            self,
-            &mut options,
-            &mut query_builder,
-            state,
-            &mut transaction,
-        )
-        .await?;
+        Self::run_update_handlers(self, &mut options, &mut query_builder, state, transaction)
+            .await?;
 
         query_builder
             .set("name", options.name.as_ref())
@@ -484,7 +473,7 @@ impl UpdatableModel for NestEggVariable {
             .set("rules", options.rules.as_ref())
             .where_eq("uuid", self.uuid);
 
-        query_builder.execute(&mut *transaction).await?;
+        query_builder.execute(&mut **transaction).await?;
 
         if let Some(name) = options.name {
             self.name = name;
@@ -517,8 +506,6 @@ impl UpdatableModel for NestEggVariable {
             self.rules = rules;
         }
 
-        transaction.commit().await?;
-
         Ok(())
     }
 }
@@ -534,14 +521,13 @@ impl DeletableModel for NestEggVariable {
         &DELETE_LISTENERS
     }
 
-    async fn delete(
+    async fn delete_with_transaction(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), anyhow::Error> {
-        let mut transaction = state.database.write().begin().await?;
-
-        self.run_delete_handlers(&options, state, &mut transaction)
+        self.run_delete_handlers(&options, state, transaction)
             .await?;
 
         sqlx::query(
@@ -551,10 +537,8 @@ impl DeletableModel for NestEggVariable {
             "#,
         )
         .bind(self.uuid)
-        .execute(&mut *transaction)
+        .execute(&mut **transaction)
         .await?;
-
-        transaction.commit().await?;
 
         Ok(())
     }

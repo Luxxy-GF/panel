@@ -109,26 +109,6 @@ impl BaseModel for ServerDatabase {
 }
 
 impl ServerDatabase {
-    pub async fn by_uuid(
-        database: &crate::database::Database,
-        uuid: uuid::Uuid,
-    ) -> Result<Option<Self>, crate::database::DatabaseError> {
-        let row = sqlx::query(&format!(
-            r#"
-            SELECT {}
-            FROM server_databases
-            JOIN database_hosts ON database_hosts.uuid = server_databases.database_host_uuid
-            WHERE server_databases.uuid = $1
-            "#,
-            Self::columns_sql(None)
-        ))
-        .bind(uuid)
-        .fetch_optional(database.read())
-        .await?;
-
-        row.try_map(|row| Self::map(None, &row))
-    }
-
     pub async fn by_server_uuid_uuid(
         database: &crate::database::Database,
         server_uuid: uuid::Uuid,
@@ -540,6 +520,49 @@ impl IntoApiObject for ServerDatabase {
     }
 }
 
+#[async_trait::async_trait]
+impl ByUuid for ServerDatabase {
+    async fn by_uuid(
+        database: &crate::database::Database,
+        uuid: uuid::Uuid,
+    ) -> Result<Self, crate::database::DatabaseError> {
+        let row = sqlx::query(&format!(
+            r#"
+            SELECT {}
+            FROM server_databases
+            JOIN database_hosts ON database_hosts.uuid = server_databases.database_host_uuid
+            WHERE server_databases.uuid = $1
+            "#,
+            Self::columns_sql(None)
+        ))
+        .bind(uuid)
+        .fetch_one(database.read())
+        .await?;
+
+        Self::map(None, &row)
+    }
+
+    async fn by_uuid_with_transaction(
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        uuid: uuid::Uuid,
+    ) -> Result<Self, crate::database::DatabaseError> {
+        let row = sqlx::query(&format!(
+            r#"
+            SELECT {}
+            FROM server_databases
+            JOIN database_hosts ON database_hosts.uuid = server_databases.database_host_uuid
+            WHERE server_databases.uuid = $1
+            "#,
+            Self::columns_sql(None)
+        ))
+        .bind(uuid)
+        .fetch_one(&mut **transaction)
+        .await?;
+
+        Self::map(None, &row)
+    }
+}
+
 #[derive(Validate)]
 pub struct CreateServerDatabaseOptions<'a> {
     #[garde(skip)]
@@ -563,9 +586,10 @@ impl CreatableModel for ServerDatabase {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self, crate::database::DatabaseError> {
         options.validate()?;
 
@@ -578,7 +602,7 @@ impl CreatableModel for ServerDatabase {
         );
         let password = rand::distr::Alphanumeric.sample_string(&mut rand::rng(), 24);
 
-        let transaction: DatabaseTransaction = match options
+        let db_transaction: DatabaseTransaction = match options
             .database_host
             .clone()
             .get_connection(&state.database)
@@ -634,17 +658,9 @@ impl CreatableModel for ServerDatabase {
             }
         };
 
-        let mut panel_transaction = state.database.write().begin().await?;
-
         let mut query_builder = InsertQueryBuilder::new("server_databases");
 
-        Self::run_create_handlers(
-            &mut options,
-            &mut query_builder,
-            state,
-            &mut panel_transaction,
-        )
-        .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         query_builder
             .set("server_uuid", options.server.uuid)
@@ -655,17 +671,17 @@ impl CreatableModel for ServerDatabase {
 
         let row = match query_builder
             .returning("uuid")
-            .fetch_one(&mut *panel_transaction)
+            .fetch_one(&mut **transaction)
             .await
         {
             Ok(row) => row,
             Err(err) => {
-                match transaction {
-                    DatabaseTransaction::Mysql(transaction) => {
-                        transaction.rollback().await?;
+                match db_transaction {
+                    DatabaseTransaction::Mysql(db_tx) => {
+                        db_tx.rollback().await?;
                     }
-                    DatabaseTransaction::Postgres(transaction, pool) => {
-                        transaction.rollback().await?;
+                    DatabaseTransaction::Postgres(db_tx, pool) => {
+                        db_tx.rollback().await?;
 
                         let drop_database = format!("DROP DATABASE IF EXISTS \"{name}\"");
                         let drop_user = format!("DROP USER IF EXISTS \"{username}\"");
@@ -686,9 +702,9 @@ impl CreatableModel for ServerDatabase {
 
         let uuid: uuid::Uuid = row.try_get("uuid")?;
 
-        match match transaction {
-            DatabaseTransaction::Mysql(transaction) => transaction.commit().await,
-            DatabaseTransaction::Postgres(transaction, _) => transaction.commit().await,
+        match match db_transaction {
+            DatabaseTransaction::Mysql(db_tx) => db_tx.commit().await,
+            DatabaseTransaction::Postgres(db_tx, _) => db_tx.commit().await,
             DatabaseTransaction::Mongodb(_) => Ok(()),
         } {
             Ok(_) => {}
@@ -700,7 +716,7 @@ impl CreatableModel for ServerDatabase {
                     "#,
                 )
                 .bind(uuid)
-                .execute(&mut *panel_transaction)
+                .execute(&mut **transaction)
                 .await
                 .ok();
 
@@ -708,11 +724,7 @@ impl CreatableModel for ServerDatabase {
             }
         }
 
-        panel_transaction.commit().await?;
-
-        Self::by_uuid(&state.database, uuid)
-            .await?
-            .ok_or(sqlx::Error::RowNotFound.into())
+        Self::by_uuid_with_transaction(transaction, uuid).await
     }
 }
 
@@ -733,37 +745,28 @@ impl UpdatableModel for ServerDatabase {
         &UPDATE_LISTENERS
     }
 
-    async fn update(
+    async fn update_with_transaction(
         &mut self,
         state: &crate::State,
         mut options: Self::UpdateOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), crate::database::DatabaseError> {
         options.validate()?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = UpdateQueryBuilder::new("server_databases");
 
-        Self::run_update_handlers(
-            self,
-            &mut options,
-            &mut query_builder,
-            state,
-            &mut transaction,
-        )
-        .await?;
+        Self::run_update_handlers(self, &mut options, &mut query_builder, state, transaction)
+            .await?;
 
         query_builder
             .set("locked", options.locked)
             .where_eq("uuid", self.uuid);
 
-        query_builder.execute(&mut *transaction).await?;
+        query_builder.execute(&mut **transaction).await?;
 
         if let Some(locked) = options.locked {
             self.locked = locked;
         }
-
-        transaction.commit().await?;
 
         Ok(())
     }
@@ -785,13 +788,33 @@ impl DeletableModel for ServerDatabase {
         &DELETE_LISTENERS
     }
 
+    async fn delete_with_transaction(
+        &self,
+        state: &crate::State,
+        options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), anyhow::Error> {
+        self.run_delete_handlers(&options, state, transaction)
+            .await?;
+
+        sqlx::query(
+            r#"
+            DELETE FROM server_databases
+            WHERE server_databases.uuid = $1
+            "#,
+        )
+        .bind(self.uuid)
+        .execute(&mut **transaction)
+        .await?;
+
+        Ok(())
+    }
+
     async fn delete(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
     ) -> Result<(), anyhow::Error> {
-        let mut transaction = state.database.write().begin().await?;
-
         if self.name.contains(|c| ['"', '\'', '`'].contains(&c))
             || self.username.contains(|c| ['"', '\'', '`'].contains(&c))
         {
@@ -800,9 +823,6 @@ impl DeletableModel for ServerDatabase {
             ));
         }
 
-        self.run_delete_handlers(&options, state, &mut transaction)
-            .await?;
-
         let connection = self
             .database_host
             .clone()
@@ -810,7 +830,8 @@ impl DeletableModel for ServerDatabase {
             .await?;
         let database_name = self.name.clone();
         let database_username = self.username.trim_end().to_string();
-        let database_uuid = self.uuid;
+        let self_clone = self.clone();
+        let state_clone = state.clone();
 
         tokio::spawn(async move {
             let run_delete = async || {
@@ -861,16 +882,10 @@ impl DeletableModel for ServerDatabase {
                 return Err(err);
             }
 
-            sqlx::query(
-                r#"
-                DELETE FROM server_databases
-                WHERE server_databases.uuid = $1
-                "#,
-            )
-            .bind(database_uuid)
-            .execute(&mut *transaction)
-            .await?;
-
+            let mut transaction = state_clone.database.write().begin().await?;
+            self_clone
+                .delete_with_transaction(&state_clone, options, &mut transaction)
+                .await?;
             transaction.commit().await?;
 
             Ok(())

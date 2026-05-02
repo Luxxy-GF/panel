@@ -302,14 +302,13 @@ impl DeletableModel for ServerAllocation {
         &DELETE_LISTENERS
     }
 
-    async fn delete(
+    async fn delete_with_transaction(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), anyhow::Error> {
-        let mut transaction = state.database.write().begin().await?;
-
-        self.run_delete_handlers(&options, state, &mut transaction)
+        self.run_delete_handlers(&options, state, transaction)
             .await?;
 
         sqlx::query(
@@ -319,10 +318,8 @@ impl DeletableModel for ServerAllocation {
             "#,
         )
         .bind(self.uuid)
-        .execute(&mut *transaction)
+        .execute(&mut **transaction)
         .await?;
-
-        transaction.commit().await?;
 
         Ok(())
     }

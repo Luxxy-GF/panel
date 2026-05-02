@@ -967,9 +967,10 @@ impl CreatableModel for ServerBackup {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self, crate::database::DatabaseError> {
         options.validate()?;
 
@@ -996,12 +997,9 @@ impl CreatableModel for ServerBackup {
             .into());
         }
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = InsertQueryBuilder::new("server_backups");
 
-        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
-            .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         query_builder
             .set("server_uuid", options.server.uuid)
@@ -1014,22 +1012,32 @@ impl CreatableModel for ServerBackup {
 
         let row = query_builder
             .returning(&Self::columns_sql(None))
-            .fetch_one(&mut *transaction)
+            .fetch_one(&mut **transaction)
             .await?;
         let backup = Self::map(None, &row)?;
 
-        transaction.commit().await?;
+        Ok(backup)
+    }
 
+    async fn create(
+        state: &crate::State,
+        options: Self::CreateOptions<'_>,
+    ) -> Result<Self, crate::database::DatabaseError> {
         let server = options.server.clone();
-        let database = Arc::clone(&state.database);
-        let backup_uuid = backup.uuid;
-        let backup_disk = backup_configuration.backup_disk;
         let ignored_files_str = options
             .ignored_files
             .iter()
             .map(|s| s.as_str())
             .collect::<Vec<_>>()
             .join("\n");
+
+        let mut transaction = state.database.write().begin().await?;
+        let backup = Self::create_with_transaction(state, options, &mut transaction).await?;
+        transaction.commit().await?;
+
+        let database = Arc::clone(&state.database);
+        let backup_uuid = backup.uuid;
+        let backup_disk = backup.disk;
 
         tokio::spawn(async move {
             tracing::debug!(backup = %backup_uuid, "creating server backup");
@@ -1127,32 +1135,25 @@ impl UpdatableModel for ServerBackup {
         &UPDATE_LISTENERS
     }
 
-    async fn update(
+    async fn update_with_transaction(
         &mut self,
         state: &crate::State,
         mut options: Self::UpdateOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), crate::database::DatabaseError> {
         options.validate()?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = UpdateQueryBuilder::new("server_backups");
 
-        Self::run_update_handlers(
-            self,
-            &mut options,
-            &mut query_builder,
-            state,
-            &mut transaction,
-        )
-        .await?;
+        Self::run_update_handlers(self, &mut options, &mut query_builder, state, transaction)
+            .await?;
 
         query_builder
             .set("name", options.name.as_ref())
             .set("locked", options.locked)
             .where_eq("uuid", self.uuid);
 
-        query_builder.execute(&mut *transaction).await?;
+        query_builder.execute(&mut **transaction).await?;
 
         if let Some(name) = options.name {
             self.name = name;
@@ -1160,8 +1161,6 @@ impl UpdatableModel for ServerBackup {
         if let Some(locked) = options.locked {
             self.locked = locked;
         }
-
-        transaction.commit().await?;
 
         Ok(())
     }
@@ -1187,6 +1186,25 @@ impl ByUuid for ServerBackup {
 
         Self::map(None, &row)
     }
+
+    async fn by_uuid_with_transaction(
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        uuid: uuid::Uuid,
+    ) -> Result<Self, crate::database::DatabaseError> {
+        let row = sqlx::query(&format!(
+            r#"
+            SELECT {}
+            FROM server_backups
+            WHERE server_backups.uuid = $1
+            "#,
+            Self::columns_sql(None)
+        ))
+        .bind(uuid)
+        .fetch_one(&mut **transaction)
+        .await?;
+
+        Self::map(None, &row)
+    }
 }
 
 #[derive(Default)]
@@ -1205,16 +1223,34 @@ impl DeletableModel for ServerBackup {
         &DELETE_LISTENERS
     }
 
+    async fn delete_with_transaction(
+        &self,
+        state: &crate::State,
+        options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), anyhow::Error> {
+        self.run_delete_handlers(&options, state, transaction)
+            .await?;
+
+        sqlx::query(
+            r#"
+            UPDATE server_backups
+            SET deleted = NOW()
+            WHERE server_backups.uuid = $1
+            "#,
+        )
+        .bind(self.uuid)
+        .execute(&mut **transaction)
+        .await?;
+
+        Ok(())
+    }
+
     async fn delete(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
     ) -> Result<(), anyhow::Error> {
-        let mut transaction = state.database.write().begin().await?;
-
-        self.run_delete_handlers(&options, state, &mut transaction)
-            .await?;
-
         let node = self.node.fetch_cached(&state.database).await?;
 
         let backup_configuration = match &self.backup_configuration {
@@ -1225,43 +1261,33 @@ impl DeletableModel for ServerBackup {
                 let database = Arc::clone(&state.database);
                 let backup_uuid = self.uuid;
                 let backup_disk = self.disk;
+                let node_uuid = node.uuid;
 
-                return tokio::spawn(async move {
-                    if backup_disk != BackupDisk::S3
-                        && let Err(err) = node
-                            .api_client(&database)
-                            .await?
-                            .delete_backups_backup(
-                                backup_uuid,
-                                &wings_api::backups_backup::delete::RequestBody {
-                                    adapter: backup_disk.to_wings_adapter(),
-                                },
-                            )
-                            .await
-                            && !matches!(
-                                err,
-                                wings_api::client::ApiHttpError::Http(StatusCode::NOT_FOUND, _)
-                            )
-                    {
-                        tracing::error!(node = %node.uuid, backup = %backup_uuid, "unable to delete backup on node: {:?}", err)
-                    }
-
-                    sqlx::query(
-                        r#"
-                        UPDATE server_backups
-                        SET deleted = NOW()
-                        WHERE server_backups.uuid = $1
-                        "#,
+                if backup_disk != BackupDisk::S3
+                    && let Err(err) = node
+                        .api_client(&database)
+                        .await?
+                        .delete_backups_backup(
+                            backup_uuid,
+                            &wings_api::backups_backup::delete::RequestBody {
+                                adapter: backup_disk.to_wings_adapter(),
+                            },
+                        )
+                        .await
+                    && !matches!(
+                        err,
+                        wings_api::client::ApiHttpError::Http(StatusCode::NOT_FOUND, _)
                     )
-                    .bind(backup_uuid)
-                    .execute(&mut *transaction)
+                {
+                    tracing::error!(node = %node_uuid, backup = %backup_uuid, "unable to delete backup on node: {:?}", err)
+                }
+
+                let mut transaction = state.database.write().begin().await?;
+                self.delete_with_transaction(state, options, &mut transaction)
                     .await?;
+                transaction.commit().await?;
 
-                    transaction.commit().await?;
-
-                    Ok(())
-                })
-                .await?;
+                return Ok(());
             }
             None => {
                 return Err(crate::response::DisplayError::new(
@@ -1285,6 +1311,8 @@ impl DeletableModel for ServerBackup {
         let backup_uuid = self.uuid;
         let backup_disk = self.disk;
         let backup_upload_path = self.upload_path.clone();
+        let self_clone = self.clone();
+        let state_clone = state.clone();
 
         tokio::spawn(async move {
             match backup_disk {
@@ -1335,17 +1363,8 @@ impl DeletableModel for ServerBackup {
                 }
             }
 
-            sqlx::query(
-                r#"
-                UPDATE server_backups
-                SET deleted = NOW()
-                WHERE server_backups.uuid = $1
-                "#,
-            )
-            .bind(backup_uuid)
-            .execute(&mut *transaction)
-            .await?;
-
+            let mut transaction = state_clone.database.write().begin().await?;
+            self_clone.delete_with_transaction(&state_clone, options, &mut transaction).await?;
             transaction.commit().await?;
 
             Ok(())

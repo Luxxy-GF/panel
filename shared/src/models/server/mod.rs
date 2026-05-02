@@ -1826,6 +1826,31 @@ impl ByUuid for Server {
 
         Self::map(None, &row)
     }
+
+    async fn by_uuid_with_transaction(
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        uuid: uuid::Uuid,
+    ) -> Result<Self, crate::database::DatabaseError> {
+        let row = sqlx::query(&format!(
+            r#"
+            SELECT {}
+            FROM servers
+            LEFT JOIN server_allocations ON server_allocations.uuid = servers.allocation_uuid
+            LEFT JOIN node_allocations ON node_allocations.uuid = server_allocations.allocation_uuid
+            JOIN users ON users.uuid = servers.owner_uuid
+            LEFT JOIN roles ON roles.uuid = users.role_uuid
+            JOIN nest_eggs ON nest_eggs.uuid = servers.egg_uuid
+            JOIN nests ON nests.uuid = nest_eggs.nest_uuid
+            WHERE servers.uuid = $1
+            "#,
+            Self::columns_sql(None)
+        ))
+        .bind(uuid)
+        .fetch_one(&mut **transaction)
+        .await?;
+
+        Self::map(None, &row)
+    }
 }
 
 #[derive(ToSchema, Validate, Deserialize)]
@@ -1895,6 +1920,14 @@ impl CreatableModel for Server {
             LazyLock::new(|| Arc::new(ModelHandlerList::default()));
 
         &CREATE_LISTENERS
+    }
+
+    async fn create_with_transaction(
+        _state: &crate::State,
+        _options: Self::CreateOptions<'_>,
+        _transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<Self, crate::database::DatabaseError> {
+        Err(anyhow::anyhow!("create_with_transaction is not supported for Server").into())
     }
 
     async fn create(
@@ -2066,8 +2099,11 @@ impl CreatableModel for Server {
 
                     return Self::by_uuid(&state.database, server_uuid).await;
                 }
-                Err(_) if attempts < 8 => {
+                Err(_) if attempts < 3 => {
                     attempts += 1;
+                    transaction.rollback().await?;
+                    transaction = state.database.write().begin().await?;
+
                     continue;
                 }
                 Err(err) => {
@@ -2156,10 +2192,11 @@ impl UpdatableModel for Server {
         &UPDATE_LISTENERS
     }
 
-    async fn update(
+    async fn update_with_transaction(
         &mut self,
         state: &crate::State,
         mut options: Self::UpdateOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), crate::database::DatabaseError> {
         options.validate()?;
 
@@ -2206,18 +2243,10 @@ impl UpdatableModel for Server {
                 None
             };
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = UpdateQueryBuilder::new("servers");
 
-        Self::run_update_handlers(
-            self,
-            &mut options,
-            &mut query_builder,
-            state,
-            &mut transaction,
-        )
-        .await?;
+        Self::run_update_handlers(self, &mut options, &mut query_builder, state, transaction)
+            .await?;
 
         query_builder
             .set("owner_uuid", options.owner_uuid.as_ref())
@@ -2275,7 +2304,7 @@ impl UpdatableModel for Server {
 
         query_builder.where_eq("uuid", self.uuid);
 
-        query_builder.execute(&mut *transaction).await?;
+        query_builder.execute(&mut **transaction).await?;
 
         if let Some(owner) = owner {
             self.owner = owner;
@@ -2331,8 +2360,6 @@ impl UpdatableModel for Server {
             self.schedule_limit = feature_limits.schedules;
         }
 
-        transaction.commit().await?;
-
         Ok(())
     }
 }
@@ -2351,6 +2378,17 @@ impl DeletableModel for Server {
             LazyLock::new(|| Arc::new(ModelHandlerList::default()));
 
         &DELETE_LISTENERS
+    }
+
+    async fn delete_with_transaction(
+        &self,
+        _state: &crate::State,
+        _options: Self::DeleteOptions,
+        _transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), anyhow::Error> {
+        Err(anyhow::anyhow!(
+            "delete_with_transaction is not supported for Server"
+        ))
     }
 
     async fn delete(

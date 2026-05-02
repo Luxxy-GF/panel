@@ -201,9 +201,10 @@ impl CreatableModel for LocationDatabaseHost {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self, crate::database::DatabaseError> {
         options.validate()?;
 
@@ -214,20 +215,15 @@ impl CreatableModel for LocationDatabaseHost {
         .await?
         .ok_or(crate::database::InvalidRelationError("database_host"))?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = InsertQueryBuilder::new("location_database_hosts");
 
-        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
-            .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         query_builder
             .set("location_uuid", options.location_uuid)
             .set("database_host_uuid", options.database_host_uuid);
 
-        query_builder.execute(&mut *transaction).await?;
-
-        transaction.commit().await?;
+        query_builder.execute(&mut **transaction).await?;
 
         match Self::by_location_uuid_database_host_uuid(
             &state.database,
@@ -253,14 +249,13 @@ impl DeletableModel for LocationDatabaseHost {
         &DELETE_LISTENERS
     }
 
-    async fn delete(
+    async fn delete_with_transaction(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), anyhow::Error> {
-        let mut transaction = state.database.write().begin().await?;
-
-        self.run_delete_handlers(&options, state, &mut transaction)
+        self.run_delete_handlers(&options, state, transaction)
             .await?;
 
         sqlx::query(
@@ -271,10 +266,8 @@ impl DeletableModel for LocationDatabaseHost {
         )
         .bind(self.location.uuid)
         .bind(self.database_host.uuid)
-        .execute(&mut *transaction)
+        .execute(&mut **transaction)
         .await?;
-
-        transaction.commit().await?;
 
         Ok(())
     }

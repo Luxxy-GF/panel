@@ -239,9 +239,10 @@ impl CreatableModel for NodeMount {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self, crate::database::DatabaseError> {
         options.validate()?;
 
@@ -249,27 +250,21 @@ impl CreatableModel for NodeMount {
             .await?
             .ok_or(crate::database::InvalidRelationError("mount"))?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = InsertQueryBuilder::new("node_mounts");
 
-        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
-            .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         query_builder
             .set("node_uuid", options.node_uuid)
             .set("mount_uuid", options.mount_uuid);
 
-        query_builder.execute(&mut *transaction).await?;
+        let row = query_builder
+            .returning(&Self::columns_sql(None))
+            .fetch_one(&mut **transaction)
+            .await?;
+        let node_mount = Self::map(None, &row)?;
 
-        transaction.commit().await?;
-
-        match Self::by_node_uuid_mount_uuid(&state.database, options.node_uuid, options.mount_uuid)
-            .await?
-        {
-            Some(node_mount) => Ok(node_mount),
-            None => Err(sqlx::Error::RowNotFound.into()),
-        }
+        Ok(node_mount)
     }
 }
 
@@ -284,14 +279,13 @@ impl DeletableModel for NodeMount {
         &DELETE_LISTENERS
     }
 
-    async fn delete(
+    async fn delete_with_transaction(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), anyhow::Error> {
-        let mut transaction = state.database.write().begin().await?;
-
-        self.run_delete_handlers(&options, state, &mut transaction)
+        self.run_delete_handlers(&options, state, transaction)
             .await?;
 
         sqlx::query(
@@ -302,10 +296,8 @@ impl DeletableModel for NodeMount {
         )
         .bind(self.node.uuid)
         .bind(self.mount.uuid)
-        .execute(&mut *transaction)
+        .execute(&mut **transaction)
         .await?;
-
-        transaction.commit().await?;
 
         Ok(())
     }

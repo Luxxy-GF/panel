@@ -632,6 +632,27 @@ impl ByUuid for Node {
 
         Self::map(None, &row)
     }
+
+    async fn by_uuid_with_transaction(
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        uuid: uuid::Uuid,
+    ) -> Result<Self, crate::database::DatabaseError> {
+        let row = sqlx::query(&format!(
+            r#"
+            SELECT {}, {}
+            FROM nodes
+            JOIN locations ON locations.uuid = nodes.location_uuid
+            WHERE nodes.uuid = $1
+            "#,
+            Self::columns_sql(None),
+            super::location::Location::columns_sql(Some("location_")),
+        ))
+        .bind(uuid)
+        .fetch_one(&mut **transaction)
+        .await?;
+
+        Self::map(None, &row)
+    }
 }
 
 #[derive(ToSchema, Deserialize, Validate)]
@@ -682,13 +703,12 @@ impl CreatableModel for Node {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self, crate::database::DatabaseError> {
         options.validate()?;
-
-        let mut transaction = state.database.write().begin().await?;
 
         if let Some(backup_configuration_uuid) = &options.backup_configuration_uuid {
             super::backup_configuration::BackupConfiguration::by_uuid_optional(
@@ -703,8 +723,7 @@ impl CreatableModel for Node {
 
         let mut query_builder = InsertQueryBuilder::new("nodes");
 
-        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
-            .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         let token_id = rand::distr::Alphanumeric.sample_string(&mut rand::rng(), 16);
         let token = rand::distr::Alphanumeric.sample_string(&mut rand::rng(), 64);
@@ -730,13 +749,11 @@ impl CreatableModel for Node {
 
         let row = query_builder
             .returning("uuid")
-            .fetch_one(&mut *transaction)
+            .fetch_one(&mut **transaction)
             .await?;
         let uuid: uuid::Uuid = row.get("uuid");
 
-        transaction.commit().await?;
-
-        Self::by_uuid(&state.database, uuid).await
+        Self::by_uuid_with_transaction(transaction, uuid).await
     }
 }
 
@@ -807,10 +824,11 @@ impl UpdatableModel for Node {
         &UPDATE_LISTENERS
     }
 
-    async fn update(
+    async fn update_with_transaction(
         &mut self,
         state: &crate::State,
         mut options: Self::UpdateOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), crate::database::DatabaseError> {
         options.validate()?;
 
@@ -847,18 +865,10 @@ impl UpdatableModel for Node {
                 None
             };
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = UpdateQueryBuilder::new("nodes");
 
-        Self::run_update_handlers(
-            self,
-            &mut options,
-            &mut query_builder,
-            state,
-            &mut transaction,
-        )
-        .await?;
+        Self::run_update_handlers(self, &mut options, &mut query_builder, state, transaction)
+            .await?;
 
         query_builder
             .set("location_uuid", options.location_uuid.as_ref())
@@ -887,7 +897,7 @@ impl UpdatableModel for Node {
             .set("disk", options.disk.as_ref())
             .where_eq("uuid", self.uuid);
 
-        query_builder.execute(&mut *transaction).await?;
+        query_builder.execute(&mut **transaction).await?;
 
         if let Some(location) = location {
             self.location = location;
@@ -928,8 +938,6 @@ impl UpdatableModel for Node {
             self.disk = disk;
         }
 
-        transaction.commit().await?;
-
         Ok(())
     }
 }
@@ -945,18 +953,17 @@ impl DeletableModel for Node {
         &DELETE_LISTENERS
     }
 
-    async fn delete(
+    async fn delete_with_transaction(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), anyhow::Error> {
         if self.is_all_in_one_node() && state.container_type.is_all_in_one() {
             return Err(anyhow::anyhow!("The AIO node cannot be deleted"));
         }
 
-        let mut transaction = state.database.write().begin().await?;
-
-        self.run_delete_handlers(&options, state, &mut transaction)
+        self.run_delete_handlers(&options, state, transaction)
             .await?;
 
         sqlx::query(
@@ -966,10 +973,8 @@ impl DeletableModel for Node {
             "#,
         )
         .bind(self.uuid)
-        .execute(&mut *transaction)
+        .execute(&mut **transaction)
         .await?;
-
-        transaction.commit().await?;
 
         Ok(())
     }

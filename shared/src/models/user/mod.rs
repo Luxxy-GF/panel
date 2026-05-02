@@ -789,9 +789,10 @@ impl CreatableModel for User {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self, crate::database::DatabaseError> {
         options.validate()?;
 
@@ -801,12 +802,9 @@ impl CreatableModel for User {
                 .ok_or(crate::database::InvalidRelationError("role"))?;
         }
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = InsertQueryBuilder::new("users");
 
-        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
-            .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         query_builder
             .set("role_uuid", options.role_uuid)
@@ -826,13 +824,21 @@ impl CreatableModel for User {
 
         let row = query_builder
             .returning("uuid")
-            .fetch_one(&mut *transaction)
+            .fetch_one(&mut **transaction)
             .await?;
         let uuid: uuid::Uuid = row.get("uuid");
 
-        transaction.commit().await?;
-
         Self::by_uuid(&state.database, uuid).await
+    }
+
+    async fn create(
+        state: &crate::State,
+        options: Self::CreateOptions<'_>,
+    ) -> Result<Self, crate::database::DatabaseError> {
+        let mut transaction = state.database.write().begin().await?;
+        let result = Self::create_with_transaction(state, options, &mut transaction).await?;
+        transaction.commit().await?;
+        Ok(result)
     }
 }
 
@@ -899,10 +905,11 @@ impl UpdatableModel for User {
         &UPDATE_LISTENERS
     }
 
-    async fn update(
+    async fn update_with_transaction(
         &mut self,
         state: &crate::State,
         mut options: Self::UpdateOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), crate::database::DatabaseError> {
         options.validate()?;
 
@@ -920,18 +927,10 @@ impl UpdatableModel for User {
             None
         };
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = UpdateQueryBuilder::new("users");
 
-        Self::run_update_handlers(
-            self,
-            &mut options,
-            &mut query_builder,
-            state,
-            &mut transaction,
-        )
-        .await?;
+        Self::run_update_handlers(self, &mut options, &mut query_builder, state, transaction)
+            .await?;
 
         query_builder
             .set("role_uuid", options.role_uuid.as_ref())
@@ -946,7 +945,7 @@ impl UpdatableModel for User {
             .set("start_on_grouped_servers", options.start_on_grouped_servers)
             .where_eq("uuid", self.uuid);
 
-        query_builder.execute(&mut *transaction).await?;
+        query_builder.execute(&mut **transaction).await?;
 
         if let Some(role) = role {
             self.role = role;
@@ -979,8 +978,6 @@ impl UpdatableModel for User {
             self.language = language;
         }
 
-        transaction.commit().await?;
-
         if let Some(password) = options.password {
             self.update_password(&state.database, password.as_deref())
                 .await?;
@@ -1001,14 +998,13 @@ impl DeletableModel for User {
         &DELETE_LISTENERS
     }
 
-    async fn delete(
+    async fn delete_with_transaction(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), anyhow::Error> {
-        let mut transaction = state.database.write().begin().await?;
-
-        self.run_delete_handlers(&options, state, &mut transaction)
+        self.run_delete_handlers(&options, state, transaction)
             .await?;
 
         sqlx::query(
@@ -1018,12 +1014,23 @@ impl DeletableModel for User {
             "#,
         )
         .bind(self.uuid)
-        .execute(&mut *transaction)
+        .execute(&mut **transaction)
         .await?;
 
-        state.storage.remove(self.avatar.as_deref()).await?;
+        Ok(())
+    }
 
+    async fn delete(
+        &self,
+        state: &crate::State,
+        options: Self::DeleteOptions,
+    ) -> Result<(), anyhow::Error> {
+        let mut transaction = state.database.write().begin().await?;
+        self.delete_with_transaction(state, options, &mut transaction)
+            .await?;
         transaction.commit().await?;
+
+        state.storage.remove(self.avatar.as_deref()).await?;
 
         Ok(())
     }
@@ -1046,6 +1053,26 @@ impl ByUuid for User {
         ))
         .bind(uuid)
         .fetch_one(database.read())
+        .await?;
+
+        Self::map(None, &row)
+    }
+
+    async fn by_uuid_with_transaction(
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        uuid: uuid::Uuid,
+    ) -> Result<Self, crate::database::DatabaseError> {
+        let row = sqlx::query(&format!(
+            r#"
+            SELECT {}
+            FROM users
+            LEFT JOIN roles ON roles.uuid = users.role_uuid
+            WHERE users.uuid = $1
+            "#,
+            Self::columns_sql(None)
+        ))
+        .bind(uuid)
+        .fetch_one(&mut **transaction)
         .await?;
 
         Self::map(None, &row)

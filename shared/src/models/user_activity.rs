@@ -254,18 +254,16 @@ impl CreatableModel for UserActivity {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self::CreateResult, crate::database::DatabaseError> {
         options.validate()?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = InsertQueryBuilder::new("user_activities");
 
-        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
-            .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         query_builder
             .set("user_uuid", options.user_uuid)
@@ -279,9 +277,7 @@ impl CreatableModel for UserActivity {
             query_builder.set("created", created);
         }
 
-        query_builder.execute(&mut *transaction).await?;
-
-        transaction.commit().await?;
+        query_builder.execute(&mut **transaction).await?;
 
         Ok(())
     }

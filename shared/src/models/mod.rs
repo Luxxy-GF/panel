@@ -375,10 +375,24 @@ pub trait CreatableModel: BaseModel + Send + Sync + 'static {
         Ok(())
     }
 
+    async fn create_with_transaction(
+        state: &crate::State,
+        options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<Self::CreateResult, crate::database::DatabaseError>;
+
     async fn create(
         state: &crate::State,
         options: Self::CreateOptions<'_>,
-    ) -> Result<Self::CreateResult, crate::database::DatabaseError>;
+    ) -> Result<Self::CreateResult, crate::database::DatabaseError> {
+        let mut transaction = state.database.write().begin().await?;
+
+        let result = Self::create_with_transaction(state, options, &mut transaction).await?;
+
+        transaction.commit().await?;
+
+        Ok(result)
+    }
 }
 
 type UpdateListenerResult<'a> =
@@ -462,11 +476,27 @@ pub trait UpdatableModel: BaseModel + Send + Sync + 'static {
         Ok(())
     }
 
+    async fn update_with_transaction(
+        &mut self,
+        state: &crate::State,
+        options: Self::UpdateOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), crate::database::DatabaseError>;
+
     async fn update(
         &mut self,
         state: &crate::State,
         options: Self::UpdateOptions,
-    ) -> Result<(), crate::database::DatabaseError>;
+    ) -> Result<(), crate::database::DatabaseError> {
+        let mut transaction = state.database.write().begin().await?;
+
+        self.update_with_transaction(state, options, &mut transaction)
+            .await?;
+
+        transaction.commit().await?;
+
+        Ok(())
+    }
 }
 
 type DeleteListenerResult<'a> =
@@ -546,17 +576,35 @@ pub trait DeletableModel: BaseModel + Send + Sync + 'static {
         Ok(())
     }
 
+    async fn delete_with_transaction(
+        &self,
+        state: &crate::State,
+        options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    ) -> Result<(), anyhow::Error>;
+
     async fn delete(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
-    ) -> Result<(), anyhow::Error>;
+    ) -> Result<(), anyhow::Error> {
+        let mut transaction = state.database.write().begin().await?;
+        self.delete_with_transaction(state, options, &mut transaction)
+            .await?;
+        transaction.commit().await?;
+        Ok(())
+    }
 }
 
 #[async_trait::async_trait]
 pub trait ByUuid: BaseModel {
     async fn by_uuid(
         database: &crate::database::Database,
+        uuid: uuid::Uuid,
+    ) -> Result<Self, DatabaseError>;
+
+    async fn by_uuid_with_transaction(
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
         uuid: uuid::Uuid,
     ) -> Result<Self, DatabaseError>;
 
@@ -577,6 +625,17 @@ pub trait ByUuid: BaseModel {
         uuid: uuid::Uuid,
     ) -> Result<Option<Self>, DatabaseError> {
         match Self::by_uuid(database, uuid).await {
+            Ok(res) => Ok(Some(res)),
+            Err(DatabaseError::Sqlx(sqlx::Error::RowNotFound)) => Ok(None),
+            Err(err) => Err(err),
+        }
+    }
+
+    async fn by_uuid_optional_with_transaction(
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        uuid: uuid::Uuid,
+    ) -> Result<Option<Self>, DatabaseError> {
+        match Self::by_uuid_with_transaction(transaction, uuid).await {
             Ok(res) => Ok(Some(res)),
             Err(DatabaseError::Sqlx(sqlx::Error::RowNotFound)) => Ok(None),
             Err(err) => Err(err),

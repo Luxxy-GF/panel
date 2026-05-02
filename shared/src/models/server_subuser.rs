@@ -226,9 +226,10 @@ impl CreatableModel for ServerSubuser {
         &CREATE_LISTENERS
     }
 
-    async fn create(
+    async fn create_with_transaction(
         state: &crate::State,
         mut options: Self::CreateOptions<'_>,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<Self, crate::database::DatabaseError> {
         options.validate()?;
 
@@ -336,12 +337,12 @@ impl CreatableModel for ServerSubuser {
             .into());
         }
 
-        let mut transaction = state.database.write().begin().await?;
+        let server_uuid = options.server.uuid;
+        let username = user.username.clone();
 
         let mut query_builder = InsertQueryBuilder::new("server_subusers");
 
-        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
-            .await?;
+        Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
         query_builder
             .set("server_uuid", options.server.uuid)
@@ -349,21 +350,24 @@ impl CreatableModel for ServerSubuser {
             .set("permissions", &options.permissions)
             .set("ignored_files", &options.ignored_files);
 
-        query_builder.execute(&mut *transaction).await?;
+        query_builder.execute(&mut **transaction).await?;
 
-        transaction.commit().await?;
+        let row = sqlx::query(&format!(
+            r#"
+            SELECT {}
+            FROM server_subusers
+            JOIN users ON users.uuid = server_subusers.user_uuid
+            LEFT JOIN roles ON roles.uuid = users.role_uuid
+            WHERE server_subusers.server_uuid = $1 AND users.username = $2
+            "#,
+            Self::columns_sql(None)
+        ))
+        .bind(server_uuid)
+        .bind(username.as_str())
+        .fetch_one(&mut **transaction)
+        .await?;
 
-        let subuser =
-            Self::by_server_uuid_username(&state.database, options.server.uuid, &user.username)
-                .await?
-                .ok_or_else(|| {
-                    anyhow::anyhow!(
-                        "subuser with username {} not found after creation",
-                        user.username
-                    )
-                })?;
-
-        Ok(subuser)
+        Self::map(None, &row)
     }
 }
 
@@ -386,25 +390,18 @@ impl UpdatableModel for ServerSubuser {
         &UPDATE_LISTENERS
     }
 
-    async fn update(
+    async fn update_with_transaction(
         &mut self,
         state: &crate::State,
         mut options: Self::UpdateOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), crate::database::DatabaseError> {
         options.validate()?;
 
-        let mut transaction = state.database.write().begin().await?;
-
         let mut query_builder = UpdateQueryBuilder::new("server_subusers");
 
-        Self::run_update_handlers(
-            self,
-            &mut options,
-            &mut query_builder,
-            state,
-            &mut transaction,
-        )
-        .await?;
+        Self::run_update_handlers(self, &mut options, &mut query_builder, state, transaction)
+            .await?;
 
         query_builder
             .set("permissions", options.permissions.as_ref())
@@ -412,7 +409,7 @@ impl UpdatableModel for ServerSubuser {
             .where_eq("server_uuid", self.server.uuid)
             .where_eq("user_uuid", self.user.uuid);
 
-        query_builder.execute(&mut *transaction).await?;
+        query_builder.execute(&mut **transaction).await?;
 
         if let Some(permissions) = options.permissions {
             self.permissions = permissions;
@@ -420,8 +417,6 @@ impl UpdatableModel for ServerSubuser {
         if let Some(ignored_files) = options.ignored_files {
             self.ignored_files = ignored_files;
         }
-
-        transaction.commit().await?;
 
         Ok(())
     }
@@ -438,14 +433,13 @@ impl DeletableModel for ServerSubuser {
         &DELETE_LISTENERS
     }
 
-    async fn delete(
+    async fn delete_with_transaction(
         &self,
         state: &crate::State,
         options: Self::DeleteOptions,
+        transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), anyhow::Error> {
-        let mut transaction = state.database.write().begin().await?;
-
-        self.run_delete_handlers(&options, state, &mut transaction)
+        self.run_delete_handlers(&options, state, transaction)
             .await?;
 
         sqlx::query(
@@ -456,10 +450,8 @@ impl DeletableModel for ServerSubuser {
         )
         .bind(self.server.uuid)
         .bind(self.user.uuid)
-        .execute(&mut *transaction)
+        .execute(&mut **transaction)
         .await?;
-
-        transaction.commit().await?;
 
         Ok(())
     }
