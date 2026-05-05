@@ -56,7 +56,6 @@ function AdminSubContentContainer<P>(props: Props<P>) {
             <Title order={titleOrder} c='white'>
               {title}
             </Title>
-            {subtitle ? <p className='text-xs text-gray-300!'>{subtitle}</p> : null}
           </div>
           <Group>
             <TextInput
@@ -74,7 +73,6 @@ function AdminSubContentContainer<P>(props: Props<P>) {
             <Title order={titleOrder} c='white'>
               {title}
             </Title>
-            {subtitle ? <p className='text-xs text-gray-300!'>{subtitle}</p> : null}
           </div>
           <Group>{contentRight}</Group>
         </Group>
@@ -83,7 +81,6 @@ function AdminSubContentContainer<P>(props: Props<P>) {
           <Title order={titleOrder} c='white'>
             {title}
           </Title>
-          {subtitle ? <p className='text-xs text-gray-300!'>{subtitle}</p> : null}
         </div>
       )}
       {registry?.prependedContentComponents.map((Component, index) => (
