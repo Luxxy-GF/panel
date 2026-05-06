@@ -1,4 +1,4 @@
-import { faCancel } from '@fortawesome/free-solid-svg-icons';
+import { faCancel, faCircleXmark, faExclamationTriangle, faInfoCircle } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Group, Title, TitleOrder } from '@mantine/core';
 import { Dispatch, ReactNode, SetStateAction, useEffect, useMemo, useState } from 'react';
@@ -13,6 +13,7 @@ import { useCurrentWindow } from '@/providers/CurrentWindowProvider.tsx';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import { useServerStore } from '@/stores/server.ts';
+import Alert from '../Alert.tsx';
 import Button from '../Button.tsx';
 import { AdminCan, ServerCan } from '../Can.tsx';
 import Notification from '../Notification.tsx';
@@ -60,9 +61,10 @@ function ServerContentContainer(props: Props) {
     fullscreen = false,
   } = props;
 
-  const { t } = useTranslations();
+  const { t, language } = useTranslations();
   const {
     server,
+    serverAnnouncements,
     updateServer,
     backupRestoreProgress,
     transferProgressArchive,
@@ -114,6 +116,28 @@ function ServerContentContainer(props: Props) {
 
   return (
     <ContentContainer title={`${title} | ${server.name}`}>
+      {serverAnnouncements.map((announcement) => (
+        <Alert
+          icon={
+            <FontAwesomeIcon
+              icon={
+                announcement.type === 'info'
+                  ? faInfoCircle
+                  : announcement.type === 'warning'
+                    ? faExclamationTriangle
+                    : faCircleXmark
+              }
+            />
+          }
+          key={announcement.uuid}
+          title={announcement.titleTranslations[language] ?? announcement.title}
+          color={announcement.type === 'info' ? 'blue' : announcement.type === 'warning' ? 'yellow' : 'red'}
+          className='mt-2 mx-2'
+        >
+          {(announcement.contentTranslations[language] ?? announcement.content).md()}
+        </Alert>
+      ))}
+
       {fullscreen ? null : server.isTransferring ? (
         <div className='mt-2 px-4 lg:px-6 mb-4'>
           <Notification loading>

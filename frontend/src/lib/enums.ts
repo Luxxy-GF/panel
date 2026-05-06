@@ -63,6 +63,7 @@ import { publicSettingsCaptchaProviderSchema } from '@/lib/schemas/settings.ts';
 import { userSshKeyProvider } from '@/lib/schemas/user/sshKeys.ts';
 import { getTranslations } from '@/providers/TranslationProvider.tsx';
 import { adminDatabaseCredentialsSchema } from './schemas/admin/databaseHosts.ts';
+import { announcementType } from './schemas/announcements.ts';
 
 export const captchaProviderTypeLabelMapping: Record<
   z.infer<typeof publicSettingsCaptchaProviderSchema>['type'],
@@ -99,6 +100,12 @@ export const databaseTypeLabelMapping: Record<z.infer<typeof databaseType>, stri
   mysql: 'MySQL',
   postgres: 'PostgreSQL',
   mongodb: 'MongoDB',
+};
+
+export const announcementTypeLabelMapping: Record<z.infer<typeof announcementType>, string> = {
+  info: 'Info',
+  warning: 'Warning',
+  error: 'Error',
 };
 
 export const databaseCredentialTypeLabelMapping: Record<

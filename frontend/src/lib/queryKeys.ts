@@ -93,6 +93,11 @@ const admin = {
     detail: (uuid: string) => ['admin', 'egg-configurations', { uuid }] as const,
   },
 
+  announcements: {
+    all: () => ['admin', 'announcements'] as const,
+    detail: (uuid: string) => ['admin', 'announcements', { uuid }] as const,
+  },
+
   activity: {
     all: () => ['admin', 'activity'] as const,
   },

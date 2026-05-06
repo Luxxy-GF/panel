@@ -19,6 +19,7 @@ use tokio::sync::RwLock;
 use utoipa::ToSchema;
 
 pub mod admin_activity;
+pub mod announcement;
 pub mod backup_configuration;
 pub mod database_host;
 pub mod egg_configuration;

@@ -1,8 +1,11 @@
+import { faCircleXmark, faExclamationTriangle, faInfoCircle, faUserCheck } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ReactNode } from 'react';
 import { makeComponentHookable } from 'shared';
 import Copyright from '@/elements/Copyright.tsx';
 import { useAuth } from '@/providers/AuthProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
+import { useGlobalStore } from '@/stores/global.ts';
 import Alert from './Alert.tsx';
 
 interface LayoutProps {
@@ -11,8 +14,9 @@ interface LayoutProps {
 }
 
 function Container({ children, isNormal }: LayoutProps) {
-  const { t } = useTranslations();
+  const { t, language } = useTranslations();
   const { impersonating } = useAuth();
+  const { announcements } = useGlobalStore();
 
   return (
     <div
@@ -24,10 +28,31 @@ function Container({ children, isNormal }: LayoutProps) {
     >
       <div>
         {impersonating && (
-          <Alert color='yellow' className='mt-2 mx-2'>
+          <Alert icon={<FontAwesomeIcon icon={faUserCheck} />} color='yellow' className='mt-2 mx-2'>
             {t('elements.container.alert.impersonating', {})}
           </Alert>
         )}
+        {announcements.map((announcement) => (
+          <Alert
+            icon={
+              <FontAwesomeIcon
+                icon={
+                  announcement.type === 'info'
+                    ? faInfoCircle
+                    : announcement.type === 'warning'
+                      ? faExclamationTriangle
+                      : faCircleXmark
+                }
+              />
+            }
+            key={announcement.uuid}
+            title={announcement.titleTranslations[language] ?? announcement.title}
+            color={announcement.type === 'info' ? 'blue' : announcement.type === 'warning' ? 'yellow' : 'red'}
+            className='mt-2 mx-2'
+          >
+            {(announcement.contentTranslations[language] ?? announcement.content).md()}
+          </Alert>
+        ))}
 
         {children}
       </div>

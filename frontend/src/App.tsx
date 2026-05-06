@@ -4,6 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { createBrowserHistory } from 'history';
 import { useEffect, useRef, useState } from 'react';
 import { unstable_HistoryRouter as HistoryRouter } from 'react-router';
+import getAnnouncements from './api/getAnnouncements.ts';
 import getLanguages from './api/getLanguages.ts';
 import getSettings from './api/getSettings.ts';
 import ErrorBoundary from './elements/ErrorBoundary.tsx';
@@ -34,7 +35,7 @@ const browserHistory = createBrowserHistory();
 const MAX_RETRIES = 10;
 
 export default function App({ theme }: { theme: MantineThemeOverride }) {
-  const { settings, setSettings, setLanguages, setTimeOffset } = useGlobalStore();
+  const { settings, setSettings, setLanguages, setTimeOffset, setAnnouncements } = useGlobalStore();
   const [loadWarning, setLoadWarning] = useState(false);
   const retryCount = useRef(0);
 
@@ -43,13 +44,14 @@ export default function App({ theme }: { theme: MantineThemeOverride }) {
     let timer: ReturnType<typeof setTimeout>;
 
     const loadData = () => {
-      Promise.all([getSettings(), getLanguages()])
-        .then(([settings, languages]) => {
+      Promise.all([getSettings(), getLanguages(), getAnnouncements()])
+        .then(([settings, languages, announcements]) => {
           if (cancelled) return;
 
           setSettings(settings);
           setLanguages(languages);
           setTimeOffset(Date.now() - new Date(settings.time).getTime());
+          setAnnouncements(announcements);
         })
         .catch((err) => {
           if (cancelled) return;

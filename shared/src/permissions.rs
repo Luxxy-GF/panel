@@ -245,6 +245,18 @@ pub(crate) static BASE_ADMIN_PERMISSIONS: LazyLock<IndexMap<&'static str, Permis
                 },
             ),
             (
+                "announcements",
+                PermissionGroup {
+                    description: "Permissions that control the ability to manage announcements for the panel.",
+                    permissions: IndexMap::from([
+                        ("create", "Allows creating new announcements."),
+                        ("read", "Allows viewing announcements."),
+                        ("update", "Allows modifying announcements."),
+                        ("delete", "Allows deleting announcements."),
+                    ]),
+                },
+            ),
+            (
                 "assets",
                 PermissionGroup {
                     description: "Permissions that control the ability to manage assets for the panel.",
