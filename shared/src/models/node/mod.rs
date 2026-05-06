@@ -344,8 +344,7 @@ impl Node {
             WHERE nodes.location_uuid = ANY($1)
             AND nodes.deployment_enabled
             AND (
-                $4
-                OR (
+                $4 OR (
                     COALESCE(u.used_memory, 0) + $2 <= nodes.memory
                     AND COALESCE(u.used_disk, 0) + $3 <= nodes.disk
                 )

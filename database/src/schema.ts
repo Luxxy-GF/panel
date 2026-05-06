@@ -629,6 +629,7 @@ export const nestEggVariablesTable = pgTable(
       .references(() => nestEggsTable.uuid, { onDelete: 'cascade' })
       .notNull(),
     name: varchar({ length: 255 * UTF8_MAX_SCALAR_SIZE }).notNull(),
+    name_translations: jsonb().default({}).notNull(),
     description: text(),
     description_translations: jsonb().default({}).notNull(),
     order_: smallint().default(0).notNull(),
@@ -642,7 +643,6 @@ export const nestEggVariablesTable = pgTable(
   },
   (cols) => [
     index('egg_variables_egg_uuid_idx').on(cols.egg_uuid),
-    uniqueIndex('egg_variables_egg_uuid_name_idx').on(cols.egg_uuid, cols.name),
     uniqueIndex('egg_variables_egg_uuid_env_variable_idx').on(cols.egg_uuid, cols.env_variable),
   ],
 );

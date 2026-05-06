@@ -1,5 +1,8 @@
 use crate::{
-    jwt::BasePayload, models::UpdateQueryBuilder, prelude::*, storage::StorageUrlRetriever,
+    jwt::BasePayload,
+    models::{InsertQueryBuilder, UpdateQueryBuilder},
+    prelude::*,
+    storage::StorageUrlRetriever,
 };
 use compact_str::ToCompactString;
 use garde::Validate;
@@ -973,23 +976,67 @@ impl CreatableModel for ServerBackup {
 
     async fn create(
         state: &crate::State,
-        options: Self::CreateOptions<'_>,
+        mut options: Self::CreateOptions<'_>,
     ) -> Result<Self, crate::database::DatabaseError> {
+        options.validate()?;
+
+        let backup_configuration = options
+            .server
+            .backup_configuration(&state.database)
+            .await
+            .ok_or_else(|| {
+                anyhow::Error::new(
+                    crate::response::DisplayError::new(
+                        "no backup configuration available, unable to create backup",
+                    )
+                    .with_status(StatusCode::EXPECTATION_FAILED),
+                )
+            })?;
+
+        if backup_configuration.maintenance_enabled {
+            return Err(anyhow::Error::new(
+                crate::response::DisplayError::new(
+                    "cannot create backup while backup configuration is in maintenance mode",
+                )
+                .with_status(StatusCode::EXPECTATION_FAILED),
+            )
+            .into());
+        }
+
+        let mut transaction = state.database.write().begin().await?;
+
+        let mut query_builder = InsertQueryBuilder::new("server_backups");
+
+        Self::run_create_handlers(&mut options, &mut query_builder, state, &mut transaction)
+            .await?;
+
+        query_builder
+            .set("server_uuid", options.server.uuid)
+            .set("node_uuid", options.server.node.uuid)
+            .set("backup_configuration_uuid", backup_configuration.uuid)
+            .set("name", &options.name)
+            .set("ignored_files", &options.ignored_files)
+            .set("bytes", 0i64)
+            .set("disk", backup_configuration.backup_disk);
+
+        let row = query_builder
+            .returning(&Self::columns_sql(None))
+            .fetch_one(&mut *transaction)
+            .await?;
+        let backup = Self::map(None, &row)?;
+
+        transaction.commit().await?;
+
         let server = options.server.clone();
+        let database = Arc::clone(&state.database);
+        let backup_uuid = backup.uuid;
+        let backup_disk = backup_configuration.backup_disk;
         let ignored_files_str = options
             .ignored_files
             .iter()
             .map(|s| s.as_str())
             .collect::<Vec<_>>()
             .join("\n");
-
-        let mut transaction = state.database.write().begin().await?;
-        let backup = Self::create_with_transaction(state, options, &mut transaction).await?;
-        transaction.commit().await?;
-
-        let database = Arc::clone(&state.database);
-        let backup_uuid = backup.uuid;
-        let backup_disk = backup.disk;
 
         tokio::spawn(async move {
             tracing::debug!(backup = %backup_uuid, "creating server backup");

@@ -138,6 +138,7 @@ impl IntoApiObject for ServerVariable {
         let api_object = finish_extendible!(
             ApiServerVariable {
                 name: self.variable.name,
+                name_translations: self.variable.name_translations,
                 description: self.variable.description,
                 description_translations: self.variable.description_translations,
                 env_variable: self.variable.env_variable,
@@ -163,6 +164,7 @@ impl IntoApiObject for ServerVariable {
 #[schema(title = "ServerVariable")]
 pub struct ApiServerVariable {
     pub name: compact_str::CompactString,
+    pub name_translations: BTreeMap<compact_str::CompactString, compact_str::CompactString>,
     pub description: Option<compact_str::CompactString>,
     pub description_translations: BTreeMap<compact_str::CompactString, compact_str::CompactString>,
 

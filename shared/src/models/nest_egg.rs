@@ -445,6 +445,7 @@ impl NestEgg {
                 CreateNestEggVariableOptions {
                     egg_uuid: egg.uuid,
                     name: variable.name,
+                    name_translations: variable.name_translations,
                     description: variable.description,
                     description_translations: variable.description_translations,
                     order: variable.order,
@@ -542,12 +543,13 @@ impl NestEgg {
 
             if let Err(err) = sqlx::query!(
                 "INSERT INTO nest_egg_variables (
-                    egg_uuid, name, description, description_translations, order_, env_variable,
+                    egg_uuid, name, name_translations, description, description_translations, order_, env_variable,
                     default_value, user_viewable, user_editable, rules
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                 ON CONFLICT (egg_uuid, env_variable) DO UPDATE SET
                     name = EXCLUDED.name,
+                    name_translations = EXCLUDED.name_translations,
                     description = EXCLUDED.description,
                     description_translations = EXCLUDED.description_translations,
                     order_ = EXCLUDED.order_,
@@ -557,6 +559,7 @@ impl NestEgg {
                     rules = EXCLUDED.rules",
                 self.uuid,
                 &variable.name,
+                serde_json::to_value(&variable.name_translations)?,
                 variable.description.as_deref(),
                 serde_json::to_value(&variable.description_translations)?,
                 if variable.order == 0 {
