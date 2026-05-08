@@ -362,7 +362,7 @@ pub fn router(state: &State) -> OpenApiRouter<State> {
                     }
                     None => {
                         let settings = state.settings.get().await?;
-                        if !settings.app.registration_enabled {
+                        if oauth_provider.login_only {
                             return ApiResponse::new(Body::empty())
                                 .with_header("Location", format!("{}/auth/login?error=registration_disabled", settings.app.url.trim_end_matches('/')))
                                 .with_status(StatusCode::TEMPORARY_REDIRECT)

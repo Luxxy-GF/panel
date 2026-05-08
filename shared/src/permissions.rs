@@ -77,6 +77,10 @@ pub(crate) static BASE_USER_PERMISSIONS: LazyLock<IndexMap<&'static str, Permiss
                 PermissionGroup {
                     description: "Permissions that control the ability to change account settings.",
                     permissions: IndexMap::from([
+                        (
+                            "infos",
+                            "Allows changing the account's basic account information.",
+                        ),
                         ("email", "Allows changing the account's email address."),
                         ("password", "Allows changing the account's password."),
                         (
