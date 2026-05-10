@@ -170,10 +170,36 @@ impl UserActivity {
         let result = sqlx::query(
             r#"
             DELETE FROM user_activities
-            WHERE created < $1
+            WHERE user_activities.created < $1
             "#,
         )
         .bind(cutoff.naive_utc())
+        .execute(database.write())
+        .await?;
+
+        Ok(result.rows_affected())
+    }
+
+    pub async fn retain_latest_logs_per_user(
+        database: &crate::database::Database,
+        keep_count: i64,
+    ) -> Result<u64, crate::database::DatabaseError> {
+        let result = sqlx::query(
+            r#"
+            DELETE FROM user_activities
+            WHERE ctid IN (
+                SELECT ctid 
+                FROM (
+                    SELECT
+                        ctid, 
+                        ROW_NUMBER() OVER (PARTITION BY user_activities.user_uuid ORDER BY user_activities.created DESC) rn
+                    FROM user_activities
+                ) sub
+                WHERE sub.rn > $1
+            )
+            "#,
+        )
+        .bind(keep_count)
         .execute(database.write())
         .await?;
 

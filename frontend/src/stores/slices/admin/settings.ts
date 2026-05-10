@@ -60,8 +60,11 @@ export const createSettingsSlice: StateCreator<AdminStore, [], [], SettingsSlice
   },
   activity: {
     adminLogRetentionDays: 180,
+    adminLogRetentionCount: null,
     userLogRetentionDays: 90,
+    userLogRetentionCount: null,
     serverLogRetentionDays: 90,
+    serverLogRetentionCount: null,
     serverLogAdminActivity: true,
     serverLogScheduleActivity: true,
   },

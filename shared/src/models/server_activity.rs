@@ -162,10 +162,36 @@ impl ServerActivity {
         let result = sqlx::query(
             r#"
             DELETE FROM server_activities
-            WHERE created < $1
+            WHERE server_activities.created < $1
             "#,
         )
         .bind(cutoff.naive_utc())
+        .execute(database.write())
+        .await?;
+
+        Ok(result.rows_affected())
+    }
+
+    pub async fn retain_latest_logs_per_server(
+        database: &crate::database::Database,
+        keep_count: i64,
+    ) -> Result<u64, crate::database::DatabaseError> {
+        let result = sqlx::query(
+            r#"
+            DELETE FROM server_activities
+            WHERE ctid IN (
+                SELECT ctid 
+                FROM (
+                    SELECT
+                        ctid, 
+                        ROW_NUMBER() OVER (PARTITION BY server_activities.server_uuid ORDER BY server_activities.created DESC) rn
+                    FROM server_activities
+                ) sub
+                WHERE sub.rn > $1
+            )
+            "#,
+        )
+        .bind(keep_count)
         .execute(database.write())
         .await?;
 

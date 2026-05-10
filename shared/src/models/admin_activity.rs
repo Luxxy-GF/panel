@@ -180,13 +180,35 @@ impl AdminActivity {
         database: &crate::database::Database,
         cutoff: chrono::DateTime<chrono::Utc>,
     ) -> Result<u64, crate::database::DatabaseError> {
-        let result = sqlx::query!(
+        let result = sqlx::query(
             r#"
             DELETE FROM admin_activities
-            WHERE created < $1
+            WHERE admin_activities.created < $1
             "#,
-            cutoff.naive_utc()
         )
+        .bind(cutoff.naive_utc())
+        .execute(database.write())
+        .await?;
+
+        Ok(result.rows_affected())
+    }
+
+    pub async fn retain_latest_logs(
+        database: &crate::database::Database,
+        keep_count: i64,
+    ) -> Result<u64, crate::database::DatabaseError> {
+        let result = sqlx::query(
+            r#"
+            DELETE FROM admin_activities
+            WHERE ctid IN (
+                SELECT ctid 
+                FROM admin_activities
+                ORDER BY admin_activities.created DESC
+                OFFSET $1
+            )
+            "#,
+        )
+        .bind(keep_count)
         .execute(database.write())
         .await?;
 

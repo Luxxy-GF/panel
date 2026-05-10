@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { oobeStepKey } from '@/lib/schemas/oobe.ts';
-import { nullableString } from '@/lib/transformers.ts';
+import { nullableNumber, nullableString } from '@/lib/transformers.ts';
 import { hostnameSchema } from '../generic.ts';
 
 export const adminSettingsApplicationSchema = z.object({
@@ -135,8 +135,11 @@ export const adminSettingsUserSchema = z.object({
 
 export const adminSettingsActivitySchema = z.object({
   adminLogRetentionDays: z.number().min(1).max(3650),
+  adminLogRetentionCount: z.preprocess(nullableNumber, z.number().min(1).nullable()),
   userLogRetentionDays: z.number().min(1).max(3650),
+  userLogRetentionCount: z.preprocess(nullableNumber, z.number().min(1).nullable()),
   serverLogRetentionDays: z.number().min(1).max(3650),
+  serverLogRetentionCount: z.preprocess(nullableNumber, z.number().min(1).nullable()),
   serverLogAdminActivity: z.boolean(),
   serverLogScheduleActivity: z.boolean(),
 });

@@ -115,11 +115,26 @@ mod put {
     #[derive(ToSchema, Validate, Deserialize)]
     pub struct PayloadActivity {
         #[garde(range(min = 1, max = 3650))]
+        #[schema(minimum = 1, maximum = 3650)]
         admin_log_retention_days: Option<u16>,
+        #[garde(range(min = 1))]
+        #[schema(minimum = 1)]
+        #[serde(default, with = "::serde_with::rust::double_option")]
+        admin_log_retention_count: Option<Option<u64>>,
         #[garde(range(min = 1, max = 3650))]
+        #[schema(minimum = 1, maximum = 3650)]
         user_log_retention_days: Option<u16>,
+        #[garde(range(min = 1))]
+        #[schema(minimum = 1)]
+        #[serde(default, with = "::serde_with::rust::double_option")]
+        user_log_retention_count: Option<Option<u64>>,
         #[garde(range(min = 1, max = 3650))]
+        #[schema(minimum = 1, maximum = 3650)]
         server_log_retention_days: Option<u16>,
+        #[garde(range(min = 1))]
+        #[schema(minimum = 1)]
+        #[serde(default, with = "::serde_with::rust::double_option")]
+        server_log_retention_count: Option<Option<u64>>,
 
         #[garde(skip)]
         server_log_admin_activity: Option<bool>,
@@ -307,11 +322,20 @@ mod put {
             if let Some(admin_log_retention_days) = activity.admin_log_retention_days {
                 settings.activity.admin_log_retention_days = admin_log_retention_days;
             }
+            if let Some(admin_log_retention_count) = activity.admin_log_retention_count {
+                settings.activity.admin_log_retention_count = admin_log_retention_count;
+            }
             if let Some(user_log_retention_days) = activity.user_log_retention_days {
                 settings.activity.user_log_retention_days = user_log_retention_days;
             }
+            if let Some(user_log_retention_count) = activity.user_log_retention_count {
+                settings.activity.user_log_retention_count = user_log_retention_count;
+            }
             if let Some(server_log_retention_days) = activity.server_log_retention_days {
                 settings.activity.server_log_retention_days = server_log_retention_days;
+            }
+            if let Some(server_log_retention_count) = activity.server_log_retention_count {
+                settings.activity.server_log_retention_count = server_log_retention_count;
             }
             if let Some(server_log_admin_activity) = activity.server_log_admin_activity {
                 settings.activity.server_log_admin_activity = server_log_admin_activity;
