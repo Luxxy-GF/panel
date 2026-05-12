@@ -82,14 +82,14 @@ mod post {
             "UPDATE server_backups SET server_uuid = $2, node_uuid = $3 WHERE server_backups.uuid = $1",
             backup.uuid,
             server.uuid,
-            node.uuid
+            server.node.uuid
         )
         .execute(state.database.write())
         .await?;
 
         activity_logger
             .log(
-                "node:backup.attach",
+                "node:backup.reattach",
                 serde_json::json!({
                     "uuid": backup.uuid,
                     "node_uuid": node.uuid,

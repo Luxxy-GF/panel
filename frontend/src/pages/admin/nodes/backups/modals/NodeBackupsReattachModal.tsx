@@ -83,12 +83,7 @@ export default function NodeBackupsReattachModal({ node, backup, opened, onClose
       </Stack>
 
       <ModalFooter>
-        <Button
-          color='red'
-          onClick={doReattach}
-          loading={loading}
-          disabled={selectedServer?.uuid === backup.server?.uuid}
-        >
+        <Button color='red' onClick={doReattach} loading={loading} disabled={!selectedServer}>
           Reattach
         </Button>
         <Button variant='default' onClick={onClose}>
