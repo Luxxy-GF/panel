@@ -1293,6 +1293,22 @@ const baseTranslations = defineTranslations({
             permissionsUpdated: 'Permissions have been updated.',
             fileSaved: 'File has been saved.',
           },
+          tooltip: {
+            fileHistory: 'File History',
+          },
+          drawer: {
+            revisions: {
+              title: 'File History',
+              noRevisions: 'No revisions found for this file.',
+              restored: 'Revision restored into editor.',
+              badge: {
+                fullSnapshot: 'Full Snapshot',
+              },
+              tooltip: {
+                restore: 'Restore this revision into the editor',
+              },
+            },
+          },
           modal: {
             activeUploads: {
               title: 'Active Uploads',

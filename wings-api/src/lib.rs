@@ -83,6 +83,15 @@ pub enum CompressionLevel {
 }
 
 nestify::nest! {
+    #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct CopyFile {
+        #[schema(inline)]
+        pub from: compact_str::CompactString,
+        #[schema(inline)]
+        pub to: compact_str::CompactString,
+    }
+}
+
+nestify::nest! {
     #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct DirectoryEntry {
         #[schema(inline)]
         pub name: compact_str::CompactString,
@@ -141,6 +150,11 @@ nestify::nest! {
 }
 
 nestify::nest! {
+    #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct FilesystemOperation {
+    }
+}
+
+nestify::nest! {
     #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct InstallationScript {
         #[schema(inline)]
         pub container_image: compact_str::CompactString,
@@ -188,6 +202,23 @@ nestify::nest! {
         pub cpu_absolute: f64,
         #[schema(inline)]
         pub uptime: u64,
+    }
+}
+
+nestify::nest! {
+    #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct RevisionInfo {
+        #[schema(inline)]
+        pub id: i64,
+        #[schema(inline)]
+        pub size: u64,
+        #[schema(inline)]
+        pub stored_size: u64,
+        #[schema(inline)]
+        pub user: Option<uuid::Uuid>,
+        #[schema(inline)]
+        pub is_snapshot: bool,
+        #[schema(inline)]
+        pub created: chrono::DateTime<chrono::Local>,
     }
 }
 
@@ -1197,6 +1228,22 @@ pub mod servers_server_files_list_directory {
         pub type Response = Response200;
     }
 }
+pub mod servers_server_files_operations {
+    use super::*;
+
+    pub mod get {
+        use super::*;
+
+        nestify::nest! {
+            #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct Response200 {
+                #[schema(inline)]
+                pub operations: Vec<FilesystemOperation>,
+            }
+        }
+
+        pub type Response = Response200;
+    }
+}
 pub mod servers_server_files_operations_operation {
     use super::*;
 
@@ -1342,6 +1389,35 @@ pub mod servers_server_files_rename {
                 pub renamed: u64,
             }
         }
+
+        pub type Response404 = ApiError;
+
+        pub type Response = Response200;
+    }
+}
+pub mod servers_server_files_revisions {
+    use super::*;
+
+    pub mod get {
+        use super::*;
+
+        nestify::nest! {
+            #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct Response200 {
+                #[schema(inline)]
+                pub revisions: Vec<RevisionInfo>,
+            }
+        }
+
+        pub type Response = Response200;
+    }
+}
+pub mod servers_server_files_revisions_revision {
+    use super::*;
+
+    pub mod get {
+        use super::*;
+
+        pub type Response200 = AsyncResponseReader;
 
         pub type Response404 = ApiError;
 
@@ -1979,6 +2055,28 @@ pub mod system_config {
                         pub detect_clean_exit_as_crash: bool,
                         #[schema(inline)]
                         pub timeout: u64,
+                    },
+
+                    #[schema(inline)]
+                    pub file_history: #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct Response200SystemFileHistory {
+                        #[schema(inline)]
+                        pub enabled: bool,
+                        #[schema(inline)]
+                        pub zstd_level: i32,
+                        #[schema(inline)]
+                        pub anchor_interval: u64,
+                        #[schema(inline)]
+                        pub keep_chains: u64,
+                        #[schema(inline)]
+                        pub file_size_cap: u64,
+                        #[schema(inline)]
+                        pub per_file_size_cap: u64,
+                        #[schema(inline)]
+                        pub per_file_disk_budget: u64,
+                        #[schema(inline)]
+                        pub per_server_disk_budget: u64,
+                        #[schema(inline)]
+                        pub maintenance_interval: u64,
                     },
 
                     #[schema(inline)]
