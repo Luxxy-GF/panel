@@ -14,6 +14,7 @@ import Drawer from '@/elements/Drawer.tsx';
 import Spinner from '@/elements/Spinner.tsx';
 import Tooltip from '@/elements/Tooltip.tsx';
 import FormattedTimestamp from '@/elements/time/FormattedTimestamp.tsx';
+import { queryKeys } from '@/lib/queryKeys.ts';
 import { serverFileRevisionSchema } from '@/lib/schemas/server/files.ts';
 import { bytesToString } from '@/lib/size.ts';
 import { useToast } from '@/providers/ToastProvider.tsx';
@@ -90,12 +91,8 @@ export default function FileRevisionsDrawer({ filePath, onRestore, opened, onClo
   const { t } = useTranslations();
   const server = useServerStore((state) => state.server);
 
-  const {
-    data: revisions,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ['server', server.uuid, 'files', 'revisions', filePath],
+  const { data: revisions, isLoading } = useQuery({
+    queryKey: queryKeys.server(server.uuid).files.fileRevisions(filePath),
     queryFn: () => getFileRevisions(server.uuid, filePath),
     enabled: opened && !!filePath,
   });
@@ -115,8 +112,6 @@ export default function FileRevisionsDrawer({ filePath, onRestore, opened, onClo
         <ScrollArea className='flex-1' offsetScrollbars>
           {isLoading ? (
             <Spinner.Centered />
-          ) : error ? (
-            <div className='flex items-center justify-center py-12 text-red-400'>{httpErrorToHuman(error)}</div>
           ) : !revisions || revisions.length === 0 ? (
             <div className='flex items-center justify-center py-12 text-gray-400'>
               {t('pages.server.files.drawer.revisions.noRevisions', {})}

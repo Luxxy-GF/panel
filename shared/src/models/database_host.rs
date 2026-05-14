@@ -99,6 +99,20 @@ fn validate_connection_string(connection_string: &str, _context: &()) -> Result<
     DatabaseType::from_url_scheme(url.scheme())
         .map_err(|err| garde::Error::new(format!("Invalid connection string: {err}")))?;
 
+    if url.host_str().is_none() {
+        return Err(garde::Error::new("Invalid connection string: missing host"));
+    }
+    if url.username().is_empty() {
+        return Err(garde::Error::new(
+            "Invalid connection string: missing username",
+        ));
+    }
+    if url.password().is_none() {
+        return Err(garde::Error::new(
+            "Invalid connection string: missing password",
+        ));
+    }
+
     Ok(())
 }
 
