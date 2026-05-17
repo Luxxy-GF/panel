@@ -83,6 +83,7 @@ mod put {
         Path(identifier): Path<String>,
         shared::Payload(data): shared::Payload<Payload>,
     ) -> ApiResponseResult {
+        permissions.has_admin_permission("settings.read")?;
         permissions.has_admin_permission("email-templates.update")?;
 
         let Ok(template) = state.mail.templates.get_template(&identifier) else {
