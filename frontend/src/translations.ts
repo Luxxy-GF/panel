@@ -1309,6 +1309,8 @@ const baseTranslations = defineTranslations({
             fileRenamed: 'File has been renamed.',
             fileCouldNotBeRenamed: 'File could not be renamed.',
             permissionsUpdated: 'Permissions have been updated.',
+            permissionsUpdatedMany: 'Permissions have been updated for {files}.',
+            permissionsCouldNotBeUpdated: 'Permissions could not be updated.',
             fileSaved: 'File has been saved.',
           },
           tooltip: {
@@ -1420,6 +1422,9 @@ const baseTranslations = defineTranslations({
             },
             filePermissions: {
               title: 'File Permissions',
+              form: {
+                recursive: 'Apply changes recursively to all files and subdirectories within this directory',
+              },
               symbolic: 'Symbolic:',
               octal: 'Octal:',
               owner: 'Owner',

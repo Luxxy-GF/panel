@@ -541,6 +541,8 @@ pub enum WebsocketEvent {
     Stats,
     #[serde(rename = "status")]
     Status,
+    #[serde(rename = "pending restart")]
+    PendingRestart,
     #[serde(rename = "custom event")]
     CustomEvent,
     #[serde(rename = "console output")]
@@ -858,6 +860,8 @@ pub mod servers_server_files_chmod {
                     pub file: compact_str::CompactString,
                     #[schema(inline)]
                     pub mode: compact_str::CompactString,
+                    #[schema(inline)]
+                    pub recursive: bool,
                 }>,
             }
         }
