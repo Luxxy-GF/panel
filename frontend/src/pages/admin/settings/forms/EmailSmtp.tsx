@@ -41,7 +41,14 @@ export default function EmailSmtp({ form }: { form: UseFormReturnType<z.infer<ty
         />
       </Group>
 
-      <Switch label='Use TLS' key={form.key('useTls')} {...form.getInputProps('useTls', { type: 'checkbox' })} />
+      <Group grow>
+        <Switch label='Use TLS' key={form.key('useTls')} {...form.getInputProps('useTls', { type: 'checkbox' })} />
+        <Switch
+          label='Skip Certificate Validation'
+          key={form.key('skipCertValidation')}
+          {...form.getInputProps('skipCertValidation', { type: 'checkbox' })}
+        />
+      </Group>
 
       <Group grow>
         <TextInput

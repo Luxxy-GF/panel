@@ -83,6 +83,9 @@ pub enum MailMode {
         password: Option<compact_str::CompactString>,
         #[garde(skip)]
         use_tls: bool,
+        #[garde(skip)]
+        #[serde(default)]
+        skip_cert_validation: bool,
 
         #[garde(length(chars, min = 1, max = 255), email)]
         from_address: compact_str::CompactString,
@@ -350,6 +353,7 @@ impl SettingsSerializeExt for AppSettings {
                 username,
                 password,
                 use_tls,
+                skip_cert_validation,
                 from_address,
                 from_name,
             } => {
@@ -374,6 +378,10 @@ impl SettingsSerializeExt for AppSettings {
                         },
                     )
                     .write_raw_setting("mail_smtp_use_tls", use_tls.to_compact_string())
+                    .write_raw_setting(
+                        "mail_smtp_skip_cert_validation",
+                        skip_cert_validation.to_compact_string(),
+                    )
                     .write_raw_setting("mail_smtp_from_address", &**from_address)
                     .write_raw_setting(
                         "mail_smtp_from_name",
@@ -619,6 +627,10 @@ impl SettingsDeserializeExt for AppSettingsDeserializer {
                         .take_raw_setting("mail_smtp_use_tls")
                         .map(|s| s == "true")
                         .unwrap_or(true),
+                    skip_cert_validation: deserializer
+                        .take_raw_setting("mail_smtp_skip_cert_validation")
+                        .map(|s| s == "true")
+                        .unwrap_or(false),
                     from_address: deserializer
                         .take_raw_setting("mail_smtp_from_address")
                         .unwrap_or_else(|| "noreply@example.com".into()),

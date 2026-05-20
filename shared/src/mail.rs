@@ -48,6 +48,7 @@ impl Mail {
                 username,
                 password,
                 use_tls,
+                skip_cert_validation,
                 from_address,
                 from_name,
             } => {
@@ -61,6 +62,7 @@ impl Mail {
                             lettre::transport::smtp::client::TlsParametersBuilder::new(
                                 host.to_string(),
                             )
+                            .dangerous_accept_invalid_certs(*skip_cert_validation)
                             .build_native()
                             .unwrap(),
                         )

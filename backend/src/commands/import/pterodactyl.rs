@@ -226,6 +226,7 @@ impl shared::extensions::commands::CliCommand<PterodactylArgs> for PterodactylCo
                                 use_tls: source_settings
                                     .remove("settings::mail:mailers:smtp:encryption")
                                     .is_some_and(|e| e == "tls"),
+                                skip_cert_validation: false,
                                 from_address,
                                 from_name: source_settings.remove("settings::mail:from:name"),
                             };
