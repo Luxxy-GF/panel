@@ -367,7 +367,7 @@ impl CreatableModel for ServerSubuser {
         state
             .mail
             .send_template(
-                &state,
+                state,
                 "added_to_server",
                 user.email.clone(),
                 minijinja::context! {
