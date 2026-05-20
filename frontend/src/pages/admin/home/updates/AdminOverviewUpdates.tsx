@@ -135,24 +135,26 @@ export default function AdminOverviewUpdates() {
         <TitleCard
           title='Version History'
           icon={<FontAwesomeIcon icon={faClockRotateLeft} />}
+          rightSection={
+            <Select
+              placeholder='Select an update history to view'
+              value={selectedUpdateHistory || ''}
+              onChange={(value) => setSelectedUpdateHistory(value || null)}
+              data={[
+                { label: 'Panel', value: '' },
+                ...(updateHistory
+                  ? Object.keys(updateHistory.extensions).map((ext) => ({
+                      label: `Extension: ${ext}`,
+                      value: ext,
+                    }))
+                  : []),
+              ]}
+              className='ml-auto'
+              size='xs'
+            />
+          }
           wrapperClassName='max-h-72 overflow-y-auto'
         >
-          <Select
-            placeholder='Select an update history to view'
-            value={selectedUpdateHistory || ''}
-            onChange={(value) => setSelectedUpdateHistory(value || null)}
-            data={[
-              { label: 'Panel', value: '' },
-              ...(updateHistory
-                ? Object.keys(updateHistory.extensions).map((ext) => ({
-                    label: `Extension: ${ext}`,
-                    value: ext,
-                  }))
-                : []),
-            ]}
-            className='mb-4'
-          />
-
           {!updateHistory ? (
             <Spinner.Centered />
           ) : (

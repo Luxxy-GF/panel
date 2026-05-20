@@ -34,6 +34,15 @@ export default function DebugInformationContainer() {
             placeholder={t('pages.server.settings.debugInformation.form.locationName', {})}
             value={`${server.locationName} (${server.locationUuid})`}
             className='pointer-events-none'
+            leftSection={
+              server.locationFlag ? (
+                <img
+                  src={`/flags/${server.locationFlag}.svg`}
+                  alt={server.locationName}
+                  className='w-5 h-5 rounded-md my-auto'
+                />
+              ) : undefined
+            }
             readOnly
           />
         </CopyOnClick>

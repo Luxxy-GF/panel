@@ -19,6 +19,8 @@ pub struct Location {
     pub name: compact_str::CompactString,
     pub description: Option<compact_str::CompactString>,
 
+    pub flag: Option<compact_str::CompactString>,
+
     pub created: chrono::NaiveDateTime,
 
     extension_data: super::ModelExtensionData,
@@ -60,6 +62,10 @@ impl BaseModel for Location {
                 compact_str::format_compact!("{prefix}description"),
             ),
             (
+                "locations.flag",
+                compact_str::format_compact!("{prefix}flag"),
+            ),
+            (
                 "locations.created",
                 compact_str::format_compact!("{prefix}created"),
             ),
@@ -80,6 +86,7 @@ impl BaseModel for Location {
             name: row.try_get(compact_str::format_compact!("{prefix}name").as_str())?,
             description: row
                 .try_get(compact_str::format_compact!("{prefix}description").as_str())?,
+            flag: row.try_get(compact_str::format_compact!("{prefix}flag").as_str())?,
             created: row.try_get(compact_str::format_compact!("{prefix}created").as_str())?,
             extension_data: Self::map_extensions(prefix, row)?,
         })
@@ -196,6 +203,7 @@ impl IntoAdminApiObject for Location {
                 },
                 name: self.name,
                 description: self.description,
+                flag: self.flag,
                 created: self.created.and_utc(),
             },
             api_object,
@@ -257,6 +265,9 @@ pub struct CreateLocationOptions {
     #[garde(length(chars, min = 1, max = 1024))]
     #[schema(min_length = 1, max_length = 1024)]
     pub description: Option<compact_str::CompactString>,
+    #[garde(length(chars, min = 2, max = 2))]
+    #[schema(min_length = 2, max_length = 2)]
+    pub flag: Option<compact_str::CompactString>,
 }
 
 #[async_trait::async_trait]
@@ -299,7 +310,8 @@ impl CreatableModel for Location {
                 options.backup_configuration_uuid,
             )
             .set("name", &options.name)
-            .set("description", &options.description);
+            .set("description", &options.description)
+            .set("flag", &options.flag);
 
         let row = query_builder
             .returning(&Self::columns_sql(None))
@@ -333,6 +345,14 @@ pub struct UpdateLocationOptions {
         with = "::serde_with::rust::double_option"
     )]
     pub description: Option<Option<compact_str::CompactString>>,
+    #[garde(length(chars, min = 2, max = 2))]
+    #[schema(min_length = 2, max_length = 2)]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "::serde_with::rust::double_option"
+    )]
+    pub flag: Option<Option<compact_str::CompactString>>,
 }
 
 #[async_trait::async_trait]
@@ -385,16 +405,11 @@ impl UpdatableModel for Location {
         query_builder
             .set(
                 "backup_configuration_uuid",
-                options
-                    .backup_configuration_uuid
-                    .as_ref()
-                    .map(|u| u.as_ref()),
+                options.backup_configuration_uuid.as_ref(),
             )
             .set("name", options.name.as_ref())
-            .set(
-                "description",
-                options.description.as_ref().map(|d| d.as_ref()),
-            )
+            .set("description", options.description.as_ref())
+            .set("flag", options.flag.as_ref())
             .where_eq("uuid", self.uuid);
 
         query_builder.execute(&mut **transaction).await?;
@@ -407,6 +422,9 @@ impl UpdatableModel for Location {
         }
         if let Some(description) = options.description {
             self.description = description;
+        }
+        if let Some(flag) = options.flag {
+            self.flag = flag;
         }
 
         self.run_after_update_handlers(state, transaction).await?;
@@ -463,6 +481,8 @@ pub struct AdminApiLocation {
 
     pub name: compact_str::CompactString,
     pub description: Option<compact_str::CompactString>,
+
+    pub flag: Option<compact_str::CompactString>,
 
     pub created: chrono::DateTime<chrono::Utc>,
 }

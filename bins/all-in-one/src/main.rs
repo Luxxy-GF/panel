@@ -78,6 +78,7 @@ async fn handle_aio_wings(state: &shared::State) -> Result<(), anyhow::Error> {
                             backup_configuration_uuid: Some(backup_configuration.uuid),
                             name: "Integrated Location".into(),
                             description: None,
+                            flag: None,
                         },
                     )
                     .await?

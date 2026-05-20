@@ -1788,6 +1788,7 @@ impl super::IntoApiObject for Server {
                 },
                 location_uuid: node.location.uuid,
                 location_name: node.location.name,
+                location_flag: node.location.flag,
                 node_uuid: node.uuid,
                 node_name: node.name,
                 node_maintenance_enabled: node.maintenance_enabled,
@@ -2615,6 +2616,7 @@ pub struct ApiServer {
 
     pub location_uuid: uuid::Uuid,
     pub location_name: compact_str::CompactString,
+    pub location_flag: Option<compact_str::CompactString>,
     pub node_uuid: uuid::Uuid,
     pub node_name: compact_str::CompactString,
     pub node_maintenance_enabled: bool,

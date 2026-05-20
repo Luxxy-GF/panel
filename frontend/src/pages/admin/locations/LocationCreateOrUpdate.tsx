@@ -1,6 +1,7 @@
 import { Group } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { zod4Resolver } from 'mantine-form-zod-resolver';
+import { basename } from 'pathe';
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 import getBackupConfigurations from '@/api/admin/backup-configurations/getBackupConfigurations.ts';
@@ -21,16 +22,21 @@ import { adminLocationSchema, adminLocationUpdateSchema } from '@/lib/schemas/ad
 import { useAdminCan } from '@/plugins/usePermissions.ts';
 import { useResourceForm } from '@/plugins/useResourceForm.ts';
 import { useSearchableResource } from '@/plugins/useSearchableResource.ts';
+import { useTranslations } from '@/providers/TranslationProvider.tsx';
+
+const flags = import.meta.glob('/node_modules/svg-country-flags/svg/*.svg');
 
 export default ({ contextLocation }: { contextLocation?: z.infer<typeof adminLocationSchema> }) => {
-  const canReadBackupConfigurations = useAdminCan('backup-configurations.read');
+  const { language } = useTranslations();
 
+  const canReadBackupConfigurations = useAdminCan('backup-configurations.read');
   const [openModal, setOpenModal] = useState<'delete' | null>(null);
 
   const form = useForm<z.infer<typeof adminLocationUpdateSchema>>({
     initialValues: {
       name: '',
       description: null,
+      flag: null,
       backupConfigurationUuid: null,
     },
     validateInputOnBlur: true,
@@ -57,6 +63,7 @@ export default ({ contextLocation }: { contextLocation?: z.infer<typeof adminLoc
       form.setValues({
         name: contextLocation.name,
         description: contextLocation.description,
+        flag: contextLocation.flag,
         backupConfigurationUuid: contextLocation.backupConfiguration?.uuid ?? null,
       });
     }
@@ -115,10 +122,35 @@ export default ({ contextLocation }: { contextLocation?: z.infer<typeof adminLoc
           <TextArea
             label='Description'
             placeholder='Description'
-            className='col-span-full'
             rows={3}
             key={form.key('description')}
             {...form.getInputProps('description')}
+          />
+
+          <Select
+            label='Flag'
+            placeholder='None'
+            renderOption={({ option }) => (
+              <div className='flex items-center gap-2'>
+                <img src={`/flags/${option.value}.svg`} alt={option.label} className='w-4 h-4 rounded-md shrink-0' />
+                <span className='truncate'>{option.label}</span>
+              </div>
+            )}
+            data={Object.keys(flags)
+              .filter((flag) => basename(flag, '.svg').length === 2)
+              .map((flag) => {
+                const countryCode = basename(flag, '.svg');
+                const regionNames = new Intl.DisplayNames([language], { type: 'region' });
+
+                return {
+                  label: regionNames.of(countryCode.toUpperCase()) || countryCode,
+                  value: countryCode,
+                };
+              })}
+            clearable
+            searchable
+            key={form.key('flag')}
+            {...form.getInputProps('flag')}
           />
         </div>
 

@@ -162,11 +162,15 @@ impl Cache {
         let version: String = client.info([InfoSection::Server]).await?;
         let version = version
             .lines()
-            .find(|line| line.starts_with("redis_version:"))
-            .unwrap_or("redis_version:unknown")
-            .split(':')
-            .nth(1)
-            .unwrap_or("unknown")
+            .find(|line| line.starts_with("valkey_version:"))
+            .or_else(|| {
+                version
+                    .lines()
+                    .find(|line| line.starts_with("redis_version:"))
+            })
+            .unwrap_or("_:unknown")
+            .split_once(':')
+            .map_or("unknown", |(_, v)| v.trim())
             .into();
 
         Ok(version)

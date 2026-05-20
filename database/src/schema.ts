@@ -437,6 +437,7 @@ export const locationsTable = pgTable(
     backup_configuration_uuid: uuid().references(() => backupConfigurationsTable.uuid, { onDelete: 'set null' }),
     name: varchar({ length: 255 * UTF8_MAX_SCALAR_SIZE }).notNull(),
     description: text(),
+    flag: char({ length: 2 }),
     created: timestamp().defaultNow().notNull(),
   },
   (cols) => [
