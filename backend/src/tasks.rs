@@ -1,10 +1,11 @@
-use std::str::FromStr;
-
 use rand::RngExt;
 use shared::models::{
-    admin_activity::AdminActivity, server_activity::ServerActivity, user_activity::UserActivity,
-    user_api_key::UserApiKey, user_security_key::UserSecurityKey, user_session::UserSession,
+    admin_activity::AdminActivity, announcement::Announcement, egg_configuration::EggConfiguration,
+    server_activity::ServerActivity, user_activity::UserActivity, user_api_key::UserApiKey,
+    user_command_snippet::UserCommandSnippet, user_security_key::UserSecurityKey,
+    user_server_group::UserServerGroup, user_session::UserSession,
 };
+use std::str::FromStr;
 
 pub async fn define_background_tasks(
     background_task_builder: &shared::extensions::background_tasks::BackgroundTaskBuilder,
@@ -124,6 +125,51 @@ pub async fn define_background_tasks(
                     tracing::info!(
                         "deleted {} unconfigured user security keys",
                         deleted_security_keys
+                    );
+                }
+
+                Ok(())
+            },
+        )
+        .await;
+    background_task_builder
+        .add_cron_task(
+            "cleanup_uuid_arrays",
+            cron::Schedule::from_str("0 * * * * *").unwrap(),
+            async |state| {
+                let cleaned_announcements =
+                    Announcement::cleanup_uuid_arrays(&state.database).await?;
+                if cleaned_announcements > 0 {
+                    tracing::info!(
+                        "cleaned up {} invalid UUIDs in announcements",
+                        cleaned_announcements
+                    );
+                }
+
+                let cleaned_egg_configurations =
+                    EggConfiguration::cleanup_uuid_arrays(&state.database).await?;
+                if cleaned_egg_configurations > 0 {
+                    tracing::info!(
+                        "cleaned up {} invalid UUIDs in egg configurations",
+                        cleaned_egg_configurations
+                    );
+                }
+
+                let cleaned_user_command_snippets =
+                    UserCommandSnippet::cleanup_uuid_arrays(&state.database).await?;
+                if cleaned_user_command_snippets > 0 {
+                    tracing::info!(
+                        "cleaned up {} invalid UUIDs in user command snippets",
+                        cleaned_user_command_snippets
+                    );
+                }
+
+                let cleaned_user_server_groups =
+                    UserServerGroup::cleanup_uuid_arrays(&state.database).await?;
+                if cleaned_user_server_groups > 0 {
+                    tracing::info!(
+                        "cleaned up {} invalid UUIDs in user server groups",
+                        cleaned_user_server_groups
                     );
                 }
 

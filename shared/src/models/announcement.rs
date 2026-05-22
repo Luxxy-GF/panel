@@ -333,6 +333,72 @@ impl Announcement {
             .map(|row| Self::map(None, &row))
             .try_collect_vec()
     }
+
+    pub async fn cleanup_uuid_arrays(
+        database: &crate::database::Database,
+    ) -> Result<u64, crate::database::DatabaseError> {
+        let result = sqlx::query(
+            "UPDATE announcements
+            SET
+                locations = CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM unnest(locations) AS u
+                        WHERE NOT EXISTS (SELECT 1 FROM locations WHERE uuid = u)
+                    )
+                    THEN COALESCE(
+                        (SELECT array_agg(u) FROM unnest(locations) AS u
+                        WHERE EXISTS (SELECT 1 FROM locations WHERE uuid = u)),
+                        '{}'::uuid[]
+                    )
+                    ELSE locations
+                END,
+                nodes = CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM unnest(nodes) AS u
+                        WHERE NOT EXISTS (SELECT 1 FROM nodes WHERE uuid = u)
+                    )
+                    THEN COALESCE(
+                        (SELECT array_agg(u) FROM unnest(nodes) AS u
+                        WHERE EXISTS (SELECT 1 FROM nodes WHERE uuid = u)),
+                        '{}'::uuid[]
+                    )
+                    ELSE nodes
+                END,
+                backup_configurations = CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM unnest(backup_configurations) AS u
+                        WHERE NOT EXISTS (SELECT 1 FROM backup_configurations WHERE uuid = u)
+                    )
+                    THEN COALESCE(
+                        (SELECT array_agg(u) FROM unnest(backup_configurations) AS u
+                        WHERE EXISTS (SELECT 1 FROM backup_configurations WHERE uuid = u)),
+                        '{}'::uuid[]
+                    )
+                    ELSE backup_configurations
+                END,
+                eggs = CASE
+                    WHEN EXISTS (
+                        SELECT 1 FROM unnest(eggs) AS u
+                        WHERE NOT EXISTS (SELECT 1 FROM nest_eggs WHERE uuid = u)
+                    )
+                    THEN COALESCE(
+                        (SELECT array_agg(u) FROM unnest(eggs) AS u
+                        WHERE EXISTS (SELECT 1 FROM nest_eggs WHERE uuid = u)),
+                        '{}'::uuid[]
+                    )
+                    ELSE eggs
+                END
+            WHERE
+                EXISTS (SELECT 1 FROM unnest(locations) AS u WHERE NOT EXISTS (SELECT 1 FROM locations WHERE uuid = u))
+                OR EXISTS (SELECT 1 FROM unnest(nodes) AS u WHERE NOT EXISTS (SELECT 1 FROM nodes WHERE uuid = u))
+                OR EXISTS (SELECT 1 FROM unnest(backup_configurations) AS u WHERE NOT EXISTS (SELECT 1 FROM backup_configurations WHERE uuid = u))
+                OR EXISTS (SELECT 1 FROM unnest(eggs) AS u WHERE NOT EXISTS (SELECT 1 FROM nest_eggs WHERE uuid = u))",
+        )
+        .execute(database.write())
+        .await?;
+
+        Ok(result.rows_affected())
+    }
 }
 
 #[async_trait::async_trait]

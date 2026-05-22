@@ -181,6 +181,27 @@ impl UserCommandSnippet {
         .fetch_one(database.read())
         .await
     }
+
+    pub async fn cleanup_uuid_arrays(
+        database: &crate::database::Database,
+    ) -> Result<u64, crate::database::DatabaseError> {
+        let result = sqlx::query(
+            "UPDATE user_command_snippets
+            SET eggs = COALESCE(
+                (SELECT array_agg(u) FROM unnest(eggs) AS u
+                WHERE EXISTS (SELECT 1 FROM nest_eggs WHERE uuid = u)),
+                '{}'::uuid[]
+            )
+            WHERE EXISTS (
+                SELECT 1 FROM unnest(eggs) AS u
+                WHERE NOT EXISTS (SELECT 1 FROM nest_eggs WHERE uuid = u)
+            )",
+        )
+        .execute(database.write())
+        .await?;
+
+        Ok(result.rows_affected())
+    }
 }
 
 #[async_trait::async_trait]
