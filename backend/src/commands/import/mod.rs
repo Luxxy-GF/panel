@@ -396,9 +396,14 @@ where
                     let name: String = column.try_get("column_name")?;
                     let data_type: String = column.try_get("data_type")?;
                     Ok::<_, anyhow::Error>(match data_type.as_str() {
-                        "timestamp without time zone" | "timestamp with time zone"
-                        | "date" | "time without time zone" | "time with time zone"
-                        | "uuid" | "json" | "jsonb" => {
+                        "timestamp without time zone"
+                        | "timestamp with time zone"
+                        | "date"
+                        | "time without time zone"
+                        | "time with time zone"
+                        | "uuid"
+                        | "json"
+                        | "jsonb" => {
                             format!("CAST(\"{name}\" AS TEXT) AS \"{name}\"")
                         }
                         "smallint" => format!("CAST(\"{name}\" AS INTEGER) AS \"{name}\""),
