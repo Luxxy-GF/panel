@@ -5,6 +5,7 @@ import LoginCheckpoint from '@/pages/auth/LoginSteps/LoginCheckpoint.tsx';
 import LoginOAuth from '@/pages/auth/LoginSteps/LoginOAuth.tsx';
 import Register from '@/pages/auth/Register.tsx';
 import ResetPassword from '@/pages/auth/ResetPassword.tsx';
+import VerifyEmail from '@/pages/auth/VerifyEmail.tsx';
 
 const routes: GlobalRouteDefinition[] = [
   {
@@ -30,6 +31,10 @@ const routes: GlobalRouteDefinition[] = [
   {
     path: '/reset-password',
     element: ResetPassword,
+  },
+  {
+    path: '/verify-email',
+    element: VerifyEmail,
   },
 ];
 

@@ -74,6 +74,8 @@ mod put {
         telemetry_enabled: Option<bool>,
         #[garde(skip)]
         registration_enabled: Option<bool>,
+        #[garde(skip)]
+        registration_require_email_verification: Option<bool>,
     }
 
     #[derive(ToSchema, Validate, Deserialize)]
@@ -301,6 +303,12 @@ mod put {
             }
             if let Some(registration_enabled) = app.registration_enabled {
                 settings.app.registration_enabled = registration_enabled;
+            }
+            if let Some(registration_require_email_verification) =
+                app.registration_require_email_verification
+            {
+                settings.app.registration_require_email_verification =
+                    registration_require_email_verification;
             }
         }
         if let Some(user) = data.user {

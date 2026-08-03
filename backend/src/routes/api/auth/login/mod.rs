@@ -100,6 +100,12 @@ mod post {
             }
         };
 
+        if !user.verified {
+            return ApiResponse::error("email_not_verified")
+                .with_status(StatusCode::FORBIDDEN)
+                .ok();
+        }
+
         if user.totp_enabled {
             let token = state.jwt.create(&TwoFactorRequiredJwt {
                 base: BasePayload {

@@ -31,6 +31,7 @@ export default function Register() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [verificationSent, setVerificationSent] = useState(false);
   const [isCaptchaValid, setIsCaptchaValid] = useState(false);
   const captchaRef = useRef<CaptchaRef>(null);
 
@@ -52,10 +53,16 @@ export default function Register() {
     captchaRef.current?.getToken().then((token) => {
       register({ ...form.values, captcha: token })
         .then((response) => {
-          doLogin(response.user!);
+          if (response.type === 'verification_required') {
+            setVerificationSent(true);
+            return;
+          }
+
+          doLogin(response.user);
         })
         .catch((msg) => {
           setError(httpErrorToHuman(msg));
+          captchaRef.current?.resetCaptcha();
         })
         .finally(() => setLoading(false));
     });
@@ -89,39 +96,59 @@ export default function Register() {
         )}
       </div>
 
-      <Stack className='w-full'>
-        <div>
-          <Title order={2}>{t('pages.auth.register.title', {})}</Title>
-          <Text className='text-neutral-400!'>{t('pages.auth.register.subtitle', {})}</Text>
-        </div>
+      {verificationSent ? (
+        <Stack className='w-full'>
+          <div>
+            <Title order={2}>{t('pages.auth.register.verify.title', {})}</Title>
+            <Text className='text-neutral-400!'>
+              {t('pages.auth.register.verify.subtitle', { email: form.values.email })}
+            </Text>
+          </div>
 
-        <Card>
-          <Stack>
-            <TextInput placeholder={t('common.form.username', {})} {...form.getInputProps('username')} />
-            <TextInput placeholder={t('common.form.email', {})} {...form.getInputProps('email')} />
-            <TextInput placeholder={t('common.form.firstName', {})} {...form.getInputProps('nameFirst')} />
-            <TextInput placeholder={t('common.form.lastName', {})} {...form.getInputProps('nameLast')} />
-            <PasswordInput placeholder={t('common.form.password', {})} {...form.getInputProps('password')} />
+          <Card>
+            <Stack>
+              <Text>{t('pages.auth.register.verify.description', {})}</Text>
+              <Button variant='light' onClick={() => navigate('/auth/login')} size='md' fullWidth>
+                {t('pages.auth.button.login', {})}
+              </Button>
+            </Stack>
+          </Card>
+        </Stack>
+      ) : (
+        <Stack className='w-full'>
+          <div>
+            <Title order={2}>{t('pages.auth.register.title', {})}</Title>
+            <Text className='text-neutral-400!'>{t('pages.auth.register.subtitle', {})}</Text>
+          </div>
 
-            <Button
-              onClick={submit}
-              loading={loading}
-              disabled={!form.isValid() || !isCaptchaValid}
-              size='md'
-              fullWidth
-            >
-              {t('pages.auth.register.button.register', {})}
-            </Button>
+          <Card>
+            <Stack>
+              <TextInput placeholder={t('common.form.username', {})} {...form.getInputProps('username')} />
+              <TextInput placeholder={t('common.form.email', {})} {...form.getInputProps('email')} />
+              <TextInput placeholder={t('common.form.firstName', {})} {...form.getInputProps('nameFirst')} />
+              <TextInput placeholder={t('common.form.lastName', {})} {...form.getInputProps('nameLast')} />
+              <PasswordInput placeholder={t('common.form.password', {})} {...form.getInputProps('password')} />
 
-            <Divider label={t('common.divider.or', {})} labelPosition='center' />
+              <Button
+                onClick={submit}
+                loading={loading}
+                disabled={!form.isValid() || !isCaptchaValid}
+                size='md'
+                fullWidth
+              >
+                {t('pages.auth.register.button.register', {})}
+              </Button>
 
-            <Button variant='light' onClick={() => navigate('/auth/login')} size='md' fullWidth>
-              {t('pages.auth.button.login', {})}
-            </Button>
-          </Stack>
-        </Card>
-        <Captcha ref={captchaRef} onValidChange={setIsCaptchaValid} />
-      </Stack>
+              <Divider label={t('common.divider.or', {})} labelPosition='center' />
+
+              <Button variant='light' onClick={() => navigate('/auth/login')} size='md' fullWidth>
+                {t('pages.auth.button.login', {})}
+              </Button>
+            </Stack>
+          </Card>
+          <Captcha ref={captchaRef} onValidChange={setIsCaptchaValid} />
+        </Stack>
+      )}
     </AuthWrapper>
   );
 }

@@ -19,6 +19,7 @@ mod get {
         name: &'a str,
         language: &'a str,
         registration_enabled: bool,
+        registration_require_email_verification: bool,
         debug: bool,
     }
 
@@ -86,6 +87,9 @@ mod get {
                 name: &settings.app.name,
                 language: &settings.app.language,
                 registration_enabled: settings.app.registration_enabled,
+                registration_require_email_verification: settings
+                    .app
+                    .registration_require_email_verification,
                 debug: state.env.is_debug(),
             },
             server: ResponseServer {

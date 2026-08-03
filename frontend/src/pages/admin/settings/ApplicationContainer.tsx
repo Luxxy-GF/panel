@@ -52,6 +52,7 @@ export default function ApplicationContainer() {
       sessionDurationSeconds: 3600,
       telemetryEnabled: true,
       registrationEnabled: true,
+      registrationRequireEmailVerification: false,
     },
     validateInputOnBlur: true,
   });
@@ -201,6 +202,18 @@ export default function ApplicationContainer() {
             form.setFieldValue('registrationEnabled', false);
           }
         },
+      },
+    },
+    {
+      type: 'switch',
+      name: 'registrationRequireEmailVerification',
+      label: t('pages.admin.settings.tabs.application.page.form.registrationRequireEmailVerification', {}),
+      description: t(
+        'pages.admin.settings.tabs.application.page.form.registrationRequireEmailVerificationDescription',
+        {},
+      ),
+      props: {
+        disabled: !form.values.registrationEnabled,
       },
     },
   ];

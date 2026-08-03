@@ -158,6 +158,13 @@ impl Default for ExtensionEmailTemplateBuilder {
                     default_enabled: true,
                 },
                 EmailTemplate {
+                    identifier: "email_verification",
+                    available_variables: vec!["user", "verify_link"],
+                    default_subject: "{{ settings.app.name }} - Verify Your Email",
+                    default_content: include_str!("../../mails/email_verification.html"),
+                    default_enabled: true,
+                },
+                EmailTemplate {
                     identifier: "connection_test",
                     available_variables: vec![],
                     default_subject: "{{ settings.app.name }} - Connection Test",

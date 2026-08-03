@@ -45,6 +45,7 @@ pub struct User {
     pub admin: bool,
     pub frozen: bool,
     pub suspended: bool,
+    pub verified: bool,
 
     pub totp_enabled: bool,
     pub totp_last_used: Option<chrono::NaiveDateTime>,
@@ -112,6 +113,10 @@ impl BaseModel for User {
                 compact_str::format_compact!("{prefix}suspended"),
             ),
             (
+                "users.verified",
+                compact_str::format_compact!("{prefix}verified"),
+            ),
+            (
                 "users.totp_enabled",
                 compact_str::format_compact!("{prefix}totp_enabled"),
             ),
@@ -176,6 +181,7 @@ impl BaseModel for User {
             admin: row.try_get(compact_str::format_compact!("{prefix}admin").as_str())?,
             frozen: row.try_get(compact_str::format_compact!("{prefix}frozen").as_str())?,
             suspended: row.try_get(compact_str::format_compact!("{prefix}suspended").as_str())?,
+            verified: row.try_get(compact_str::format_compact!("{prefix}verified").as_str())?,
             totp_enabled: row
                 .try_get(compact_str::format_compact!("{prefix}totp_enabled").as_str())?,
             totp_last_used: row
@@ -721,6 +727,7 @@ impl User {
                 admin: self.admin,
                 frozen: self.frozen,
                 suspended: self.suspended,
+                verified: self.verified,
                 totp_enabled: self.totp_enabled,
                 totp_last_used: self.totp_last_used.map(|dt| dt.and_utc()),
                 require_two_factor,
@@ -805,6 +812,7 @@ impl IntoAdminApiObject for User {
                 admin: self.admin,
                 frozen: self.frozen,
                 suspended: self.suspended,
+                verified: self.verified,
                 totp_enabled: self.totp_enabled,
                 totp_last_used: self.totp_last_used.map(|dt| dt.and_utc()),
                 require_two_factor,
@@ -1028,6 +1036,8 @@ pub struct UpdateUserOptions {
     pub frozen: Option<bool>,
     #[garde(skip)]
     pub suspended: Option<bool>,
+    #[garde(skip)]
+    pub verified: Option<bool>,
 
     #[garde(
         length(chars, min = 2, max = 15),
@@ -1085,6 +1095,7 @@ impl UpdatableModel for User {
             .set("admin", options.admin)
             .set("frozen", options.frozen)
             .set("suspended", options.suspended)
+            .set("verified", options.verified)
             .set("language", options.language.as_ref())
             .set("toast_position", options.toast_position.as_ref())
             .set("start_on_grouped_servers", options.start_on_grouped_servers)
@@ -1124,6 +1135,9 @@ impl UpdatableModel for User {
         }
         if let Some(suspended) = options.suspended {
             self.suspended = suspended;
+        }
+        if let Some(verified) = options.verified {
+            self.verified = verified;
         }
         if let Some(language) = options.language {
             self.language = language;
@@ -1270,6 +1284,7 @@ pub struct ApiFullUser {
     pub admin: bool,
     pub frozen: bool,
     pub suspended: bool,
+    pub verified: bool,
 
     pub totp_enabled: bool,
     pub totp_last_used: Option<chrono::DateTime<chrono::Utc>>,
@@ -1304,6 +1319,7 @@ pub struct AdminApiUser {
     pub admin: bool,
     pub frozen: bool,
     pub suspended: bool,
+    pub verified: bool,
 
     pub totp_enabled: bool,
     pub totp_last_used: Option<chrono::DateTime<chrono::Utc>>,

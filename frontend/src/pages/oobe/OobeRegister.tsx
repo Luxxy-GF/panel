@@ -50,7 +50,12 @@ export default function OobeRegister({ onNext }: OobeComponentProps) {
       captcha: '',
     })
       .then((response) => {
-        doLogin(response.user!, false);
+        if (response.type !== 'completed') {
+          setError(t('pages.oobe.register.error.verificationRequired', {}));
+          return;
+        }
+
+        doLogin(response.user, false);
         onNext();
       })
       .catch((msg) => {

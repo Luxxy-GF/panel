@@ -145,6 +145,7 @@ export const usersTable = pgTable(
     language: varchar({ length: 15 }).default('en').notNull(),
     toast_position: userToastPositionEnum().default('BOTTOM_RIGHT').notNull(),
     start_on_grouped_servers: boolean().default(false).notNull(),
+    verified: boolean().default(true).notNull(),
     created: timestamp().defaultNow().notNull(),
   },
   (cols) => [
@@ -244,6 +245,22 @@ export const userPasswordResetsTable = pgTable(
   (cols) => [
     index('user_password_resets_user_uuid_idx').on(cols.user_uuid),
     uniqueIndex('user_password_resets_token_idx').on(cols.token),
+  ],
+);
+
+export const userEmailVerificationsTable = pgTable(
+  'user_email_verifications',
+  {
+    uuid: uuid().default(sql`gen_random_uuid()`).primaryKey().notNull(),
+    user_uuid: uuid()
+      .references(() => usersTable.uuid, { onDelete: 'cascade' })
+      .notNull(),
+    token: text().notNull(),
+    created: timestamp().defaultNow().notNull(),
+  },
+  (cols) => [
+    index('user_email_verifications_user_uuid_idx').on(cols.user_uuid),
+    uniqueIndex('user_email_verifications_token_idx').on(cols.token),
   ],
 );
 

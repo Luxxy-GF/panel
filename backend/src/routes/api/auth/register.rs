@@ -7,7 +7,7 @@ mod post {
     use serde::{Deserialize, Serialize};
     use shared::{
         ApiError, GetState,
-        models::{ByUuid, CreatableModel, user::User, user_session::UserSession},
+        models::{ByUuid, CreatableModel, UpdatableModel, user::User, user_session::UserSession},
         response::{ApiResponse, ApiResponseResult},
     };
     use tower_cookies::Cookies;
@@ -37,8 +37,14 @@ mod post {
     }
 
     #[derive(ToSchema, Serialize)]
-    struct Response {
-        user: shared::models::user::ApiFullUser,
+    #[serde(tag = "type", rename_all = "snake_case")]
+    enum Response {
+        /// The account was created and the user has been logged in.
+        Completed {
+            user: Box<shared::models::user::ApiFullUser>,
+        },
+        /// The account was created but requires email verification before the user can log in.
+        VerificationRequired {},
     }
 
     #[utoipa::path(post, path = "/", responses(
@@ -65,6 +71,8 @@ mod post {
                 .ok();
         }
         let ratelimit = settings.ratelimits.auth_register;
+        let require_email_verification = settings.app.registration_require_email_verification;
+        let mail_configured = !matches!(settings.mail_mode, shared::settings::MailMode::None);
         drop(settings);
 
         state
@@ -108,6 +116,37 @@ mod post {
             }
         };
 
+        // The first user (always an admin) is created during first-run setup, which logs in via the
+        // same endpoint; never gate it on verification or a fresh install could lock itself out.
+        // If verification is enabled but no mailer is configured, fail open (log a warning) rather
+        // than making registration impossible.
+        let mut user = user;
+        if require_email_verification && !user.admin {
+            if !mail_configured {
+                tracing::warn!(
+                    user = %user.uuid,
+                    "registration_require_email_verification is enabled but no mailer is configured; \
+                     auto-verifying the new account"
+                );
+            } else {
+                user.update(
+                    &state,
+                    shared::models::user::UpdateUserOptions {
+                        verified: Some(false),
+                        ..Default::default()
+                    },
+                )
+                .await?;
+
+                let state = state.clone();
+                tokio::spawn(async move {
+                    super::super::verify_email::send_verification_email(&state, &user).await;
+                });
+
+                return ApiResponse::new_serialized(Response::VerificationRequired {}).ok();
+            }
+        }
+
         let key = UserSession::create(
             &state,
             shared::models::user_session::CreateUserSessionOptions {
@@ -124,10 +163,11 @@ mod post {
 
         cookies.add(UserSession::get_cookie(&state, key).await?);
 
-        ApiResponse::new_serialized(Response {
-            user: user
-                .into_api_full_object(&state, &state.storage.retrieve_urls().await?)
-                .await?,
+        ApiResponse::new_serialized(Response::Completed {
+            user: Box::new(
+                user.into_api_full_object(&state, &state.storage.retrieve_urls().await?)
+                    .await?,
+            ),
         })
         .ok()
     }

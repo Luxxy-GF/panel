@@ -13,6 +13,7 @@ export const adminUserSchema = z.looseObject({
   admin: z.boolean(),
   frozen: z.boolean(),
   suspended: z.boolean(),
+  verified: z.boolean(),
   language: z.string(),
   role: z.lazy(() => roleSchema).nullable(),
   created: z.coerce.date(),
@@ -36,6 +37,7 @@ export const adminUserUpdateSchema = z.lazy(() =>
       uuid: true,
       role: true,
       created: true,
+      verified: true,
     })
     .extend({
       roleUuid: z.string().nullable(),

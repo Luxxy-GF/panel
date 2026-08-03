@@ -37,6 +37,7 @@ export const createSettingsSlice: StateCreator<AdminStore, [], [], SettingsSlice
     sessionDurationSeconds: 3600,
     telemetryEnabled: true,
     registrationEnabled: true,
+    registrationRequireEmailVerification: false,
   },
   server: {
     maxFileManagerViewSize: 10 * 1024 * 1024 * 1024,

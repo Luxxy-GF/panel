@@ -32,6 +32,7 @@ pub struct AppSettingsApp {
 
     pub telemetry_enabled: bool,
     pub registration_enabled: bool,
+    pub registration_require_email_verification: bool,
 }
 
 #[async_trait::async_trait]
@@ -68,6 +69,11 @@ impl SettingsSerializeExt for AppSettingsApp {
             .write_raw_setting(
                 "registration_enabled",
                 self.registration_enabled.to_compact_string(),
+            )
+            .write_raw_setting(
+                "registration_require_email_verification",
+                self.registration_require_email_verification
+                    .to_compact_string(),
             ))
     }
 }
@@ -125,6 +131,10 @@ impl SettingsDeserializeExt for AppSettingsAppDeserializer {
                 .take_raw_setting("registration_enabled")
                 .map(|s| s == "true")
                 .unwrap_or(true),
+            registration_require_email_verification: deserializer
+                .take_raw_setting("registration_require_email_verification")
+                .map(|s| s == "true")
+                .unwrap_or(false),
         }))
     }
 }

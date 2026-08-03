@@ -48,6 +48,7 @@ export const publicSettingsSchema = z.object({
     name: z.string(),
     language: z.string(),
     registrationEnabled: z.boolean(),
+    registrationRequireEmailVerification: z.boolean(),
     debug: z.boolean(),
   }),
   server: z.object({

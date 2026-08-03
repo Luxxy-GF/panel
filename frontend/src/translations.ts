@@ -661,6 +661,10 @@ const baseTranslations = defineTranslations({
           button: {
             create: 'Create Account & Continue',
           },
+          error: {
+            verificationRequired:
+              'Email verification is required for this account. Please check your inbox to verify it before continuing.',
+          },
         },
         login: {
           title: 'Log back in',
@@ -818,6 +822,13 @@ const baseTranslations = defineTranslations({
             usernameRequired: 'Please enter a username',
             registrationDisabled: 'No matching Account could be found and registration is currently disabled.',
             userAlreadyExists: 'An account with this username or email already exists.',
+            emailNotVerified: 'You need to verify your email address before you can sign in.',
+          },
+          verify: {
+            resendButton: 'Resend verification email',
+            resent: 'If an unverified account exists for that address, a new verification email has been sent.',
+            checkEmail:
+              'Please check your email for the verification link, or sign in with your email address to resend it.',
           },
           passkey: {
             error: {
@@ -893,6 +904,16 @@ const baseTranslations = defineTranslations({
           button: {
             register: 'Register',
           },
+          verify: {
+            title: 'Verify your email',
+            subtitle: 'We sent a verification link to {email}',
+            description:
+              'Please click the link in that email to activate your account. Once verified, you can sign in.',
+          },
+        },
+        verifyEmail: {
+          title: 'Verifying your email',
+          subtitle: 'Please wait while we confirm your email address',
         },
         forgotPassword: {
           title: 'Forgot Password',
@@ -1585,6 +1606,9 @@ const baseTranslations = defineTranslations({
                   telemetryEnabledDescription:
                     'Allow Calagopus to collect limited and anonymous usage data to help improve the application.',
                   registrationEnabled: 'Enable Registration',
+                  registrationRequireEmailVerification: 'Require Email Verification',
+                  registrationRequireEmailVerificationDescription:
+                    'Require newly registered users to verify their email address.',
                 },
                 enum: {
                   twoFactorRequirement: {

@@ -9,6 +9,7 @@ import getOAuthProviders from '@/api/auth/getOAuthProviders.ts';
 import getSecurityKeys from '@/api/auth/getSecurityKeys.ts';
 import login from '@/api/auth/login.ts';
 import postSecurityKeyChallenge from '@/api/auth/postSecurityKeyChallenge.ts';
+import resendVerificationEmail from '@/api/auth/resendVerificationEmail.ts';
 import { httpErrorToHuman } from '@/api/axios.ts';
 import Alert from '@/elements/Alert.tsx';
 import Anchor from '@/elements/Anchor.tsx';
@@ -38,6 +39,8 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent'>('idle');
   const [step, setStep] = useState<'username' | 'passkey' | 'password'>('username');
   const [oAuthProviders, setOAuthProviders] = useState<z.infer<typeof oAuthProviderSchema>[]>([]);
   const [passkeyUuid, setPasskeyUuid] = useState('');
@@ -167,6 +170,7 @@ export default function Login() {
 
   const doSubmitPassword = () => {
     setLoading(true);
+    setNeedsVerification(false);
 
     const tokenPromise = captchaRef.current?.getToken() ?? Promise.resolve(null);
     tokenPromise
@@ -195,7 +199,14 @@ export default function Login() {
             doLogin(response.user);
           })
           .catch((msg) => {
-            setError(httpErrorToHuman(msg));
+            const human = httpErrorToHuman(msg);
+            if (human === 'email_not_verified') {
+              setNeedsVerification(true);
+              setResendState('idle');
+              setError(t('pages.auth.login.error.emailNotVerified', {}));
+            } else {
+              setError(human);
+            }
             captchaRef.current?.resetCaptcha();
           })
           .finally(() => setLoading(false));
@@ -204,6 +215,28 @@ export default function Login() {
         setError(httpErrorToHuman(err));
         captchaRef.current?.resetCaptcha();
         setLoading(false);
+      });
+  };
+
+  const doResendVerification = () => {
+    setResendState('sending');
+    captchaRef.current
+      ?.getToken()
+      .then((token) => {
+        resendVerificationEmail({ email: usernameForm.values.username, captcha: token })
+          .then(() => {
+            setResendState('sent');
+            setError('');
+          })
+          .catch((msg) => {
+            setResendState('idle');
+            setError(httpErrorToHuman(msg));
+            captchaRef.current?.resetCaptcha();
+          });
+      })
+      .catch((err) => {
+        setResendState('idle');
+        setError(httpErrorToHuman(err));
       });
   };
 
@@ -383,6 +416,23 @@ export default function Login() {
                 >
                   {t('pages.auth.login.step.password.button.signIn', {})}
                 </Button>
+
+                {needsVerification &&
+                  (resendState === 'sent' ? (
+                    <Text className='text-neutral-400! text-center'>{t('pages.auth.login.verify.resent', {})}</Text>
+                  ) : usernameForm.values.username.includes('@') ? (
+                    <Button
+                      variant='light'
+                      onClick={doResendVerification}
+                      loading={resendState === 'sending'}
+                      size='md'
+                      fullWidth
+                    >
+                      {t('pages.auth.login.verify.resendButton', {})}
+                    </Button>
+                  ) : (
+                    <Text className='text-neutral-400! text-center'>{t('pages.auth.login.verify.checkEmail', {})}</Text>
+                  ))}
 
                 <Divider label={t('common.divider.or', {})} labelPosition='center' />
 

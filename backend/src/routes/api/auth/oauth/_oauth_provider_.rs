@@ -20,7 +20,7 @@ use shared::{
     database::BASE64_ENGINE,
     jwt::BasePayload,
     models::{
-        ByUuid, CreatableModel, oauth_provider::OAuthProvider, user::User,
+        ByUuid, CreatableModel, UpdatableModel, oauth_provider::OAuthProvider, user::User,
         user_activity::UserActivity, user_oauth_link::UserOAuthLink, user_session::UserSession,
     },
     response::ApiResponse,
@@ -275,7 +275,20 @@ pub fn router(state: &State) -> OpenApiRouter<State> {
 
                 match UserOAuthLink::by_oauth_provider_uuid_identifier(&state.database, oauth_provider.uuid, &identifier).await? {
                     Some(oauth_link) => {
-                        let user = oauth_link.user.fetch(&state.database).await?;
+                        let mut user = oauth_link.user.fetch(&state.database).await?;
+
+                        // Signing in through an OAuth provider proves ownership of the account's
+                        // email, so treat it as satisfying the email verification requirement.
+                        if !user.verified {
+                            user.update(
+                                &state,
+                                shared::models::user::UpdateUserOptions {
+                                    verified: Some(true),
+                                    ..Default::default()
+                                },
+                            )
+                            .await?;
+                        }
 
                         apply_oauth_provider_mappings(&state, &oauth_provider, user.uuid, &token, &info).await;
 

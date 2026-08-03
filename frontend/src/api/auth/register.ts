@@ -6,14 +6,17 @@ import { fullUserSchema } from '@/lib/schemas/user.ts';
 
 const registerWithCaptchaSchema = authRegisterSchema.extend({ captcha: z.string().nullable().optional() });
 
-interface Response {
-  user: z.infer<typeof fullUserSchema>;
-}
+type Response = { type: 'completed'; user: z.infer<typeof fullUserSchema> } | { type: 'verification_required' };
 
 export default async (registerData: z.infer<typeof registerWithCaptchaSchema>): Promise<Response> => {
   const { data } = await axiosInstance.post(
     '/api/auth/register',
     serializeForApi(registerWithCaptchaSchema, registerData),
   );
-  return { ...data, user: parseFromApi(fullUserSchema, data.user) };
+
+  if (data.type === 'verification_required') {
+    return { type: 'verification_required' };
+  }
+
+  return { type: 'completed', user: parseFromApi(fullUserSchema, data.user) };
 };

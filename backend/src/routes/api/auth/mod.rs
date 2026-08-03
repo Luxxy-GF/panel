@@ -5,6 +5,7 @@ mod login;
 mod oauth;
 mod password;
 mod register;
+mod verify_email;
 
 pub fn router(state: &State) -> OpenApiRouter<State> {
     OpenApiRouter::new()
@@ -12,5 +13,6 @@ pub fn router(state: &State) -> OpenApiRouter<State> {
         .nest("/register", register::router(state))
         .nest("/password", password::router(state))
         .nest("/oauth", oauth::router(state))
+        .nest("/verify-email", verify_email::router(state))
         .with_state(state.clone())
 }

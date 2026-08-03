@@ -44,6 +44,7 @@ export const fullUserSchema = z.lazy(() =>
     admin: z.boolean(),
     frozen: z.boolean(),
     suspended: z.boolean(),
+    verified: z.boolean(),
     language: z.string(),
   }),
 );
