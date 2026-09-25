@@ -7,7 +7,13 @@ import BackupProviderSection from './BackupProviderSection.tsx';
 
 type PbsFormValues = z.infer<typeof adminBackupConfigurationPbsSchema>;
 
-export default function BackupPBS({ form }: { form: UseFormReturnType<PbsFormValues> }) {
+export default function BackupPBS({
+  form,
+  onRemove,
+}: {
+  form: UseFormReturnType<PbsFormValues>;
+  onRemove?: () => void;
+}) {
   const { t } = useTranslations();
   const fields: FieldDef<PbsFormValues>[] = [
     {
@@ -56,7 +62,10 @@ export default function BackupPBS({ form }: { form: UseFormReturnType<PbsFormVal
   ];
 
   return (
-    <BackupProviderSection title={t('pages.admin.backupConfigurations.tabs.general.page.pbs.title', {})}>
+    <BackupProviderSection
+      title={t('pages.admin.backupConfigurations.tabs.general.page.pbs.title', {})}
+      onRemove={onRemove}
+    >
       <FormEngine form={form} fields={fields} />
     </BackupProviderSection>
   );

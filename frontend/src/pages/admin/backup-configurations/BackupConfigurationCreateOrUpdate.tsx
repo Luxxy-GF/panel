@@ -13,6 +13,7 @@ import Alert from '@/elements/feedback/Alert.tsx';
 import { FormEngine, useFormEngine } from '@/elements/form-engine/index.ts';
 import Group from '@/elements/layout/Group.tsx';
 import ConfirmationModal from '@/elements/modals/ConfirmationModal.tsx';
+import { backupDiskLabelMapping } from '@/lib/enums.ts';
 import { queryKeys } from '@/lib/queryKeys.ts';
 import {
   adminBackupConfigurationKopiaSchema,
@@ -84,6 +85,7 @@ export default function BackupConfigurationCreateOrUpdate({
 }) {
   const { t } = useTranslations();
   const [openModal, setOpenModal] = useState<'delete' | 'duplicate' | null>(null);
+  const [removeProvider, setRemoveProvider] = useState<typeof backupDisk | null>(null);
 
   const form = useFormEngine<BackupConfigFormValues>('admin.backupConfigurations.createOrUpdate', {
     schema: adminBackupConfigurationUpdateSchema.unwrap(),
@@ -131,6 +133,23 @@ export default function BackupConfigurationCreateOrUpdate({
   };
 
   const providerVisible = (f: ReturnType<typeof providerFlags>) => backupDisk === f.disk || f.dirty || f.touched;
+
+  const resetProviderForm = (provider: typeof backupDisk) => {
+    switch (provider) {
+      case 's3':
+        s3Form.reset();
+        break;
+      case 'restic':
+        resticForm.reset();
+        break;
+      case 'proxmox-backup-server':
+        pbsForm.reset();
+        break;
+      case 'kopia':
+        kopiaForm.reset();
+        break;
+    }
+  };
 
   const buildBackupConfigs = () => ({
     s3: s3Form.isDirty() ? adminBackupConfigurationS3Schema.parse(s3Form.getValues()) : null,
@@ -214,6 +233,23 @@ export default function BackupConfigurationCreateOrUpdate({
         }).md()}
       </ConfirmationModal>
 
+      <ConfirmationModal
+        opened={removeProvider !== null}
+        onClose={() => setRemoveProvider(null)}
+        title={t('pages.admin.backupConfigurations.tabs.general.page.modal.removeProvider.title', {})}
+        confirm={t('common.button.remove', {})}
+        onConfirmed={() => {
+          if (removeProvider) {
+            resetProviderForm(removeProvider);
+          }
+          setRemoveProvider(null);
+        }}
+      >
+        {t('pages.admin.backupConfigurations.tabs.general.page.modal.removeProvider.content', {
+          provider: removeProvider ? backupDiskLabelMapping[removeProvider] : '',
+        }).md()}
+      </ConfirmationModal>
+
       {contextBackupConfiguration && (
         <BackupConfigurationDuplicateModal
           backupConfiguration={contextBackupConfiguration}
@@ -270,10 +306,30 @@ export default function BackupConfigurationCreateOrUpdate({
           </a>
         </Group>
 
-        {providerVisible(flags.s3) && <BackupS3 form={s3Form} />}
-        {providerVisible(flags.restic) && <BackupRestic form={resticForm} />}
-        {providerVisible(flags.pbs) && <BackupPBS form={pbsForm} />}
-        {providerVisible(flags.kopia) && <BackupKopia form={kopiaForm} />}
+        {providerVisible(flags.s3) && (
+          <BackupS3
+            form={s3Form}
+            onRemove={backupDisk !== PROVIDER_DISKS.s3 ? () => setRemoveProvider('s3') : undefined}
+          />
+        )}
+        {providerVisible(flags.restic) && (
+          <BackupRestic
+            form={resticForm}
+            onRemove={backupDisk !== PROVIDER_DISKS.restic ? () => setRemoveProvider('restic') : undefined}
+          />
+        )}
+        {providerVisible(flags.pbs) && (
+          <BackupPBS
+            form={pbsForm}
+            onRemove={backupDisk !== PROVIDER_DISKS.pbs ? () => setRemoveProvider('proxmox-backup-server') : undefined}
+          />
+        )}
+        {providerVisible(flags.kopia) && (
+          <BackupKopia
+            form={kopiaForm}
+            onRemove={backupDisk !== PROVIDER_DISKS.kopia ? () => setRemoveProvider('kopia') : undefined}
+          />
+        )}
       </form>
     </AdminContentContainer>
   );

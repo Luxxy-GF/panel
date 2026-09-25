@@ -4711,6 +4711,10 @@
                 "modal": {
                   "delete": {
                     "title": "Löschen der Backup-Konfiguration bestätigen"
+                  },
+                  "removeProvider": {
+                    "title": "Entfernen der Provider-Einstellungen bestätigen",
+                    "content": "Beim Speichern werden die **{provider}**-Einstellungen entfernt. Bereits vorhandene Backups, die auf diesen Konfigurations-Optionen basieren, werden nicht mehr funktionieren."
                   }
                 },
                 "s3": {

@@ -8,7 +8,13 @@ import BackupProviderSection from './BackupProviderSection.tsx';
 
 type KopiaFormValues = z.infer<typeof adminBackupConfigurationKopiaSchema>;
 
-export default function BackupKopia({ form }: { form: UseFormReturnType<KopiaFormValues> }) {
+export default function BackupKopia({
+  form,
+  onRemove,
+}: {
+  form: UseFormReturnType<KopiaFormValues>;
+  onRemove?: () => void;
+}) {
   const { t } = useTranslations();
   const fields: FieldDef<KopiaFormValues>[] = [
     {
@@ -30,7 +36,10 @@ export default function BackupKopia({ form }: { form: UseFormReturnType<KopiaFor
   ];
 
   return (
-    <BackupProviderSection title={t('pages.admin.backupConfigurations.tabs.general.page.kopia.title', {})}>
+    <BackupProviderSection
+      title={t('pages.admin.backupConfigurations.tabs.general.page.kopia.title', {})}
+      onRemove={onRemove}
+    >
       <FormEngine form={form} fields={fields} />
 
       <MultiKeyValueInput

@@ -4719,6 +4719,11 @@ const baseTranslations = defineTranslations({
                   delete: {
                     title: 'Confirm Backup Configuration Deletion',
                   },
+                  removeProvider: {
+                    title: 'Confirm Provider Settings Removal',
+                    content:
+                      'This will remove the **{provider}** settings when saving. Any existing backups relying on these configuration options will stop working.',
+                  },
                 },
                 s3: {
                   title: 'S3 Settings',
