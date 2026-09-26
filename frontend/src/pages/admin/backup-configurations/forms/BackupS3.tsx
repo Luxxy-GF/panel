@@ -10,6 +10,7 @@ type S3FormValues = z.infer<typeof adminBackupConfigurationS3Schema>;
 
 export default function BackupS3({ form, onRemove }: { form: UseFormReturnType<S3FormValues>; onRemove?: () => void }) {
   const { t } = useTranslations();
+
   const fields: FieldDef<S3FormValues>[] = [
     { type: 'text', name: 'accessKey', label: t('common.form.accessKey', {}), required: true },
     {
