@@ -224,6 +224,17 @@ export const mountTableColumns = (): string[] => {
   ];
 };
 
+export const deviceTableColumns = (): string[] => {
+  const { t } = getTranslations();
+  return [
+    t('common.table.columns.id', {}),
+    t('common.table.columns.name', {}),
+    t('common.table.columns.source', {}),
+    t('common.table.columns.target', {}),
+    t('common.table.columns.created', {}),
+  ];
+};
+
 export const nestTableColumns = (): string[] => {
   const { t } = getTranslations();
   return [
@@ -269,6 +280,18 @@ export const eggMountTableColumns = (): string[] => {
   ];
 };
 
+export const eggDeviceTableColumns = (): string[] => {
+  const { t } = getTranslations();
+  return [
+    t('common.table.columns.id', {}),
+    t('common.table.columns.name', {}),
+    t('common.table.columns.source', {}),
+    t('common.table.columns.target', {}),
+    t('common.table.columns.added', {}),
+    '',
+  ];
+};
+
 export const nodeTableColumns = (): string[] => {
   const { t } = getTranslations();
   return [
@@ -293,6 +316,18 @@ export const desyncNodeTableColumns = (): string[] => {
 };
 
 export const nodeMountTableColumns = (): string[] => {
+  const { t } = getTranslations();
+  return [
+    t('common.table.columns.id', {}),
+    t('common.table.columns.name', {}),
+    t('common.table.columns.source', {}),
+    t('common.table.columns.target', {}),
+    t('common.table.columns.added', {}),
+    '',
+  ];
+};
+
+export const nodeDeviceTableColumns = (): string[] => {
   const { t } = getTranslations();
   return [
     t('common.table.columns.id', {}),
@@ -393,6 +428,18 @@ export const serverBackupTableColumns = (): string[] => {
 };
 
 export const serverMountTableColumns = (): string[] => {
+  const { t } = getTranslations();
+  return [
+    t('common.table.columns.id', {}),
+    t('common.table.columns.name', {}),
+    t('common.table.columns.source', {}),
+    t('common.table.columns.target', {}),
+    t('common.table.columns.added', {}),
+    '',
+  ];
+};
+
+export const serverDeviceTableColumns = (): string[] => {
   const { t } = getTranslations();
   return [
     t('common.table.columns.id', {}),

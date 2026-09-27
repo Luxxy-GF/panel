@@ -1459,6 +1459,17 @@ impl DuplicableModel for NestEgg {
         .execute(&mut **transaction)
         .await?;
 
+        sqlx::query(
+            "INSERT INTO nest_egg_devices (egg_uuid, device_uuid)
+            SELECT $1, nest_egg_devices.device_uuid
+            FROM nest_egg_devices
+            WHERE nest_egg_devices.egg_uuid = $2",
+        )
+        .bind(nest_egg.uuid)
+        .bind(self.uuid)
+        .execute(&mut **transaction)
+        .await?;
+
         self.run_after_duplicate_handlers(&mut nest_egg, &options, state, transaction)
             .await?;
 

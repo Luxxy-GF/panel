@@ -512,6 +512,24 @@ export const mountsTable = pgTable(
   ],
 );
 
+export const devicesTable = pgTable(
+  'devices',
+  {
+    uuid: uuid().default(sql`gen_random_uuid()`).primaryKey().notNull(),
+    name: varchar({ length: 255 * UTF8_MAX_SCALAR_SIZE }).notNull(),
+    description: text(),
+    source: varchar({ length: 255 }).notNull(),
+    target: varchar({ length: 255 }).notNull(),
+    permissions: varchar({ length: 255 }).default('rwm').notNull(),
+    user_attachable: boolean().default(false).notNull(),
+    created: timestamp().defaultNow().notNull(),
+  },
+  (cols) => [
+    uniqueIndex('devices_name_idx').on(cols.name),
+    uniqueIndex('devices_source_target_idx').on(cols.source, cols.target),
+  ],
+);
+
 export const backupConfigurationsTable = pgTable(
   'backup_configurations',
   {
@@ -715,6 +733,24 @@ export const nodeMountsTable = pgTable(
   ],
 );
 
+export const nodeDevicesTable = pgTable(
+  'node_devices',
+  {
+    node_uuid: uuid()
+      .references(() => nodesTable.uuid, { onDelete: 'cascade' })
+      .notNull(),
+    device_uuid: uuid()
+      .references(() => devicesTable.uuid, { onDelete: 'cascade' })
+      .notNull(),
+    created: timestamp().defaultNow().notNull(),
+  },
+  (cols) => [
+    primaryKey({ name: 'node_devices_pk', columns: [cols.node_uuid, cols.device_uuid] }),
+    index('node_devices_node_uuid_idx').on(cols.node_uuid),
+    index('node_devices_device_uuid_idx').on(cols.device_uuid),
+  ],
+);
+
 export const nodeDatabaseHostsTable = pgTable(
   'node_database_hosts',
   {
@@ -862,6 +898,24 @@ export const nestEggMountsTable = pgTable(
     primaryKey({ name: 'egg_mounts_pk', columns: [cols.egg_uuid, cols.mount_uuid] }),
     index('egg_mounts_egg_uuid_idx').on(cols.egg_uuid),
     index('egg_mounts_mount_uuid_idx').on(cols.mount_uuid),
+  ],
+);
+
+export const nestEggDevicesTable = pgTable(
+  'nest_egg_devices',
+  {
+    egg_uuid: uuid()
+      .references(() => nestEggsTable.uuid, { onDelete: 'cascade' })
+      .notNull(),
+    device_uuid: uuid()
+      .references(() => devicesTable.uuid, { onDelete: 'cascade' })
+      .notNull(),
+    created: timestamp().defaultNow().notNull(),
+  },
+  (cols) => [
+    primaryKey({ name: 'egg_devices_pk', columns: [cols.egg_uuid, cols.device_uuid] }),
+    index('egg_devices_egg_uuid_idx').on(cols.egg_uuid),
+    index('egg_devices_device_uuid_idx').on(cols.device_uuid),
   ],
 );
 
@@ -1237,6 +1291,24 @@ export const serverMountsTable = pgTable(
     primaryKey({ name: 'server_mounts_pk', columns: [cols.server_uuid, cols.mount_uuid] }),
     index('server_mounts_server_uuid_idx').on(cols.server_uuid),
     index('server_mounts_mount_uuid_idx').on(cols.mount_uuid),
+  ],
+);
+
+export const serverDevicesTable = pgTable(
+  'server_devices',
+  {
+    server_uuid: uuid()
+      .references(() => serversTable.uuid, { onDelete: 'cascade' })
+      .notNull(),
+    device_uuid: uuid()
+      .references(() => devicesTable.uuid, { onDelete: 'cascade' })
+      .notNull(),
+    created: timestamp().defaultNow().notNull(),
+  },
+  (cols) => [
+    primaryKey({ name: 'server_devices_pk', columns: [cols.server_uuid, cols.device_uuid] }),
+    index('server_devices_server_uuid_idx').on(cols.server_uuid),
+    index('server_devices_device_uuid_idx').on(cols.device_uuid),
   ],
 );
 

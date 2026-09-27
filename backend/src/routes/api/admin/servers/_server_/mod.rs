@@ -16,6 +16,7 @@ mod allocations;
 mod backups;
 mod clear_state;
 mod databases;
+mod devices;
 mod logs;
 mod mounts;
 mod transfer;
@@ -283,6 +284,7 @@ pub fn router(state: &State) -> OpenApiRouter<State> {
         .routes(routes!(patch::route))
         .nest("/variables", variables::router(state))
         .nest("/mounts", mounts::router(state))
+        .nest("/devices", devices::router(state))
         .nest("/transfer", transfer::router(state))
         .nest("/allocations", allocations::router(state))
         .nest("/clear-state", clear_state::router(state))

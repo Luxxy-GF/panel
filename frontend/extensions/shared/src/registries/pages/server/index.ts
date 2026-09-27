@@ -4,6 +4,7 @@ import { ActivityRegistry } from './activity.ts';
 import { BackupsRegistry } from './backups/index.ts';
 import { ConsoleRegistry } from './console.ts';
 import { DatabasesRegistry } from './databases/index.ts';
+import { DevicesRegistry } from './devices.ts';
 import { FilesRegistry } from './files.ts';
 import { MountsRegistry } from './mounts.ts';
 import { NetworkRegistry } from './network/index.ts';
@@ -23,6 +24,7 @@ export class ServerRegistry implements Registry {
     this.network.mergeFrom(other.network);
     this.startup.mergeFrom(other.startup);
     this.mounts.mergeFrom(other.mounts);
+    this.devices.mergeFrom(other.devices);
     this.settings.mergeFrom(other.settings);
     this.activity.mergeFrom(other.activity);
 
@@ -41,6 +43,7 @@ export class ServerRegistry implements Registry {
   public network: NetworkRegistry = new NetworkRegistry();
   public startup: StartupRegistry = new StartupRegistry();
   public mounts: MountsRegistry = new MountsRegistry();
+  public devices: DevicesRegistry = new DevicesRegistry();
   public settings: SettingsRegistry = new SettingsRegistry();
   public activity: ActivityRegistry = new ActivityRegistry();
 
@@ -89,6 +92,11 @@ export class ServerRegistry implements Registry {
 
   public enterMounts(callback: (registry: MountsRegistry) => unknown): this {
     callback(this.mounts);
+    return this;
+  }
+
+  public enterDevices(callback: (registry: DevicesRegistry) => unknown): this {
+    callback(this.devices);
     return this;
   }
 

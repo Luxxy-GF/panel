@@ -78,6 +78,10 @@ const admin = {
     all: () => ['admin', 'mounts'] as const,
     detail: (uuid: string) => ['admin', 'mounts', { uuid }] as const,
   },
+  devices: {
+    all: () => ['admin', 'devices'] as const,
+    detail: (uuid: string) => ['admin', 'devices', { uuid }] as const,
+  },
 
   mountAssignments: {
     all: () => ['admin', 'mount-assignments'] as const,
@@ -89,6 +93,17 @@ const admin = {
     nodesByMount: (mountUuid: string) => ['admin', 'mount-assignments', 'mount', mountUuid, 'nodes'] as const,
     eggsByMount: (mountUuid: string) => ['admin', 'mount-assignments', 'mount', mountUuid, 'eggs'] as const,
     serversByMount: (mountUuid: string) => ['admin', 'mount-assignments', 'mount', mountUuid, 'servers'] as const,
+  },
+  deviceAssignments: {
+    all: () => ['admin', 'device-assignments'] as const,
+    devicesByNode: (nodeUuid: string) => ['admin', 'device-assignments', 'node', nodeUuid] as const,
+    devicesByEgg: (eggUuid: string) => ['admin', 'device-assignments', 'egg', eggUuid] as const,
+    devicesByServer: (serverUuid: string) => ['admin', 'device-assignments', 'server', serverUuid] as const,
+    availableDevicesByServer: (serverUuid: string) =>
+      ['admin', 'device-assignments', 'server', serverUuid, 'available'] as const,
+    nodesByDevice: (deviceUuid: string) => ['admin', 'device-assignments', 'device', deviceUuid, 'nodes'] as const,
+    eggsByDevice: (deviceUuid: string) => ['admin', 'device-assignments', 'device', deviceUuid, 'eggs'] as const,
+    serversByDevice: (deviceUuid: string) => ['admin', 'device-assignments', 'device', deviceUuid, 'servers'] as const,
   },
 
   databaseHosts: {
@@ -277,6 +292,9 @@ const server = (serverUuid: string) => ({
   },
   mounts: {
     all: () => ['server', serverUuid, 'mounts'] as const,
+  },
+  devices: {
+    all: () => ['server', serverUuid, 'devices'] as const,
   },
   network: {
     all: () => ['server', serverUuid, 'network'] as const,

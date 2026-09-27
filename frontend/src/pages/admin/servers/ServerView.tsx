@@ -7,6 +7,7 @@ import {
   faFileText,
   faFolderTree,
   faHouse,
+  faMicrochip,
   faNetworkWired,
   faWrench,
 } from '@fortawesome/free-solid-svg-icons';
@@ -20,6 +21,7 @@ import AdminServerActions from '@/pages/admin/servers/AdminServerActions.tsx';
 import AdminServerAllocations from '@/pages/admin/servers/allocations/AdminServerAllocations.tsx';
 import AdminServerBackups from '@/pages/admin/servers/backups/AdminServerBackups.tsx';
 import AdminServerDatabases from '@/pages/admin/servers/databases/AdminServerDatabases.tsx';
+import AdminServerDevices from '@/pages/admin/servers/devices/AdminServerDevices.tsx';
 import AdminServerLogs from '@/pages/admin/servers/logs/AdminServerLogs.tsx';
 import AdminServerManagement from '@/pages/admin/servers/management/AdminServerManagement.tsx';
 import AdminServerMounts from '@/pages/admin/servers/mounts/AdminServerMounts.tsx';
@@ -82,6 +84,13 @@ export default function ServerView() {
                 path: `/mounts`,
                 element: <AdminServerMounts server={server} />,
                 permission: 'servers.mounts',
+              },
+              {
+                name: t('pages.admin.servers.tabs.devices.title', {}),
+                icon: faMicrochip,
+                path: `/devices`,
+                element: <AdminServerDevices server={server} />,
+                permission: 'servers.devices',
               },
               {
                 name: t('pages.admin.servers.tabs.backups.title', {}),

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { adminBackupConfigurationSchema } from '@/lib/schemas/admin/backupConfigurations.ts';
 import { adminDatabaseAgentHostSchema } from '@/lib/schemas/admin/databaseAgentHosts.ts';
 import { adminDatabaseHostSchema } from '@/lib/schemas/admin/databaseHosts.ts';
+import { adminDeviceSchema } from '@/lib/schemas/admin/devices.ts';
 import { adminLocationSchema } from '@/lib/schemas/admin/locations.ts';
 import { adminMountSchema } from '@/lib/schemas/admin/mounts.ts';
 import { adminServerBackupSchema, adminServerSchema } from '@/lib/schemas/admin/servers.ts';
@@ -133,6 +134,11 @@ export const adminNodeMountSchema = z.looseObject({
   created: z.coerce.date(),
 });
 
+export const adminNodeDeviceSchema = z.looseObject({
+  device: z.lazy(() => adminDeviceSchema),
+  created: z.coerce.date(),
+});
+
 export const adminNodeDatabaseHostSchema = z.looseObject({
   databaseHost: z.lazy(() => adminDatabaseHostSchema),
   created: z.coerce.date(),
@@ -160,6 +166,7 @@ export type AdminNodeAllocation = z.infer<typeof adminNodeAllocationSchema>;
 export type AdminNodeAllocationFilter = z.infer<typeof adminNodeAllocationFilterSchema>;
 export type AdminNodeAllocationSelector = z.infer<typeof adminNodeAllocationSelectorSchema>;
 export type AdminNodeMount = z.infer<typeof adminNodeMountSchema>;
+export type AdminNodeDevice = z.infer<typeof adminNodeDeviceSchema>;
 export type AdminNodeDatabaseHost = z.infer<typeof adminNodeDatabaseHostSchema>;
 export type AdminNodeDatabaseAgentHost = z.infer<typeof adminNodeDatabaseAgentHostSchema>;
 export type AdminNodeServerBackup = z.infer<typeof adminNodeServerBackupSchema>;

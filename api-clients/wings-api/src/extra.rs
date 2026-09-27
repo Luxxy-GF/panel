@@ -846,6 +846,7 @@ pub const FORBIDDEN_CONFIG_PATHS: &[&str] = &[
     "tundra.image",
     "tundra.source_image",
     "allowed_mounts",
+    "allowed_devices",
     "ignore_panel_config_updates",
     "ignore_panel_wings_upgrades",
     "api.host",

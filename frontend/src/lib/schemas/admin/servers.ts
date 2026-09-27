@@ -3,6 +3,7 @@ import { adminBackupConfigurationSchema } from '@/lib/schemas/admin/backupConfig
 import { adminDatabaseAgentHostSchema } from '@/lib/schemas/admin/databaseAgentHosts.ts';
 import { adminDatabaseAgentTemplateSchema } from '@/lib/schemas/admin/databaseAgentTemplates.ts';
 import { adminDatabaseHostSchema } from '@/lib/schemas/admin/databaseHosts.ts';
+import { adminDeviceSchema } from '@/lib/schemas/admin/devices.ts';
 import { adminEggSchema } from '@/lib/schemas/admin/eggs.ts';
 import { adminMountSchema } from '@/lib/schemas/admin/mounts.ts';
 import { adminNestSchema } from '@/lib/schemas/admin/nests.ts';
@@ -200,6 +201,11 @@ export const adminServerMountSchema = z.looseObject({
   created: z.coerce.date().nullable(),
 });
 
+export const adminServerDeviceSchema = z.looseObject({
+  device: z.lazy(() => adminDeviceSchema),
+  created: z.coerce.date().nullable(),
+});
+
 export type AdminServer = z.infer<typeof adminServerSchema>;
 export type AdminServerLimits = z.infer<typeof adminServerLimitsSchema>;
 export type AdminServerFeatureLimits = z.infer<typeof adminServerFeatureLimitsSchema>;
@@ -211,3 +217,4 @@ export type AdminServerServerDatabase = z.infer<typeof adminServerServerDatabase
 export type AdminServerDatabaseAgent = z.infer<typeof adminServerDatabaseAgentSchema>;
 export type AdminServerServerDatabaseAgent = z.infer<typeof adminServerServerDatabaseAgentSchema>;
 export type AdminServerMount = z.infer<typeof adminServerMountSchema>;
+export type AdminServerDevice = z.infer<typeof adminServerDeviceSchema>;

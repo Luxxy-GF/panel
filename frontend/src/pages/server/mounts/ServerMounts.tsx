@@ -4,6 +4,7 @@ import ServerContentContainer from '@/elements/containers/ServerContentContainer
 import Table, { tableSelectionHeader } from '@/elements/data-display/Table.tsx';
 import SelectionArea from '@/elements/dnd/SelectionArea.tsx';
 import { queryKeys } from '@/lib/queryKeys.ts';
+import ServerDevices from '@/pages/server/devices/ServerDevices.tsx';
 import MountActionBar from '@/pages/server/mounts/MountActionBar.tsx';
 import { MountRow } from '@/pages/server/mounts/MountRow.tsx';
 import { useSearchablePaginatedTable } from '@/plugins/resource/useSearchablePaginatedTable.ts';
@@ -11,11 +12,13 @@ import { useTableSelection } from '@/plugins/selection/useTableSelection.ts';
 import { useServerCan } from '@/plugins/usePermissions.ts';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import { useServerStore } from '@/stores/server.ts';
+import MountsSubNavigation from './MountsSubNavigation.tsx';
 
 export default function ServerMounts() {
   const { t } = useTranslations();
   const server = useServerStore((state) => state.server);
 
+  const canReadMounts = useServerCan('mounts.read');
   const canSelect = useServerCan(['mounts.attach', 'mounts.detach']);
 
   const {
@@ -26,6 +29,7 @@ export default function ServerMounts() {
   } = useSearchablePaginatedTable({
     queryKey: queryKeys.server(server.uuid).mounts.all(),
     fetcher: () => getMounts(server.uuid),
+    canRequest: canReadMounts,
   });
 
   const {
@@ -37,11 +41,17 @@ export default function ServerMounts() {
     selectionAreaProps,
   } = useTableSelection({ items: mounts?.data, shortcuts: canSelect });
 
+  if (!canReadMounts) {
+    return <ServerDevices />;
+  }
+
   return (
     <ServerContentContainer
       title={t('pages.server.mounts.title', {})}
       registry={window.extensionContext.extensionRegistry.pages.server.mounts.container}
     >
+      <MountsSubNavigation />
+
       <MountActionBar selectedMounts={selectedMounts} clearSelection={clearSelection} onFinished={refetch} />
 
       <SelectionArea {...selectionAreaProps} disabled={!canSelect}>

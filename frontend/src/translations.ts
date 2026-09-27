@@ -34,6 +34,7 @@ const baseTranslations = defineTranslations({
     schedule: defineEnglishItem('Schedule', 'Schedules'),
     subuser: defineEnglishItem('Subuser', 'Subusers'),
     mount: defineEnglishItem('Mount', 'Mounts'),
+    device: defineEnglishItem('Device', 'Devices'),
     apiKey: defineEnglishItem('API Key', 'API Keys'),
     oauthLink: defineEnglishItem('Linked Account', 'Linked Accounts'),
     commandSnippet: defineEnglishItem('Command Snippet', 'Command Snippets'),
@@ -301,6 +302,7 @@ const baseTranslations = defineTranslations({
         additionalAllocations: 'Additional Allocations',
         externalId: 'External ID',
         mount: 'Mount',
+        device: 'Device',
         nest: 'Nest',
         lines: 'Lines',
         databaseHost: 'Database Host',
@@ -600,6 +602,8 @@ const baseTranslations = defineTranslations({
           redirect: 'Redirect',
         },
         empty: 'No routes configured. Add routes, dividers, or redirects below.',
+        missingRoutes:
+          'The following pages are missing from this route configuration and will be unavailable to users: {routes}.',
         unnamed: '(unnamed)',
         dividerPlaceholder: 'Divider label (optional)',
         redirectNamePlaceholder: 'Redirect name',
@@ -3135,6 +3139,25 @@ const baseTranslations = defineTranslations({
                 },
               },
             },
+            devices: {
+              title: 'Devices',
+              page: {
+                title: 'Node Devices',
+                toast: {
+                  added: 'Node Device added.',
+                  removed: 'Node Device removed.',
+                },
+                modal: {
+                  add: {
+                    title: 'Add Node Device',
+                  },
+                  remove: {
+                    title: 'Confirm Node Device Removal',
+                    content: 'Are you sure you want to remove the device **{device}** from **{name}**?',
+                  },
+                },
+              },
+            },
             databaseHosts: {
               title: 'Database Hosts',
               page: {
@@ -3666,6 +3689,25 @@ const baseTranslations = defineTranslations({
                 },
               },
             },
+            devices: {
+              title: 'Devices',
+              page: {
+                title: 'Server Devices',
+                toast: {
+                  added: 'Server Device added.',
+                  deleted: 'Server Device deleted.',
+                },
+                modal: {
+                  add: {
+                    title: 'Add Server Device',
+                  },
+                  remove: {
+                    title: 'Confirm Server Device Removal',
+                    content: 'Are you sure you want to remove the device **{device}** from **{name}**?',
+                  },
+                },
+              },
+            },
             backups: {
               title: 'Backups',
               page: {
@@ -3992,6 +4034,25 @@ const baseTranslations = defineTranslations({
                         delete: {
                           title: 'Confirm Egg Mount Removal',
                           content: 'Are you sure you want to remove the mount **{mount}** from **{egg}**?',
+                        },
+                      },
+                    },
+                  },
+                  devices: {
+                    title: 'Devices',
+                    page: {
+                      title: 'Egg Devices',
+                      toast: {
+                        added: 'Egg Device added.',
+                        deleted: 'Egg Device deleted.',
+                      },
+                      modal: {
+                        add: {
+                          title: 'Add Egg Device',
+                        },
+                        delete: {
+                          title: 'Confirm Egg Device Removal',
+                          content: 'Are you sure you want to remove the device **{device}** from **{egg}**?',
                         },
                       },
                     },
@@ -5043,6 +5104,77 @@ const baseTranslations = defineTranslations({
               title: 'Servers',
               page: {
                 title: 'Mount Servers',
+              },
+            },
+          },
+        },
+        devices: {
+          title: 'Devices',
+          resourceName: 'Device',
+          tabs: {
+            general: {
+              page: {
+                titleCreate: 'Create Device',
+                titleUpdate: 'Update Device',
+                alert:
+                  'Devices are a powerful and potentially dangerous feature. Improper use can lead to data loss or security vulnerabilities (including container escapes). Make sure you understand the implications of using devices before creating or updating them.',
+                form: {
+                  userAttachable: 'User Attachable',
+                  permissions: 'Permissions',
+                  permissionsDescription: 'Device access: r for read, w for write, and m for creating device nodes.',
+                },
+                modal: {
+                  delete: {
+                    title: 'Confirm Device Deletion',
+                  },
+                },
+              },
+            },
+            eggs: {
+              title: 'Eggs',
+              page: {
+                title: 'Device Eggs',
+                toast: {
+                  added: 'Device Egg added.',
+                  removed: 'Device Egg deleted.',
+                },
+                modal: {
+                  add: {
+                    title: 'Add Device Egg',
+                    form: {
+                      egg: 'Egg',
+                    },
+                  },
+                  remove: {
+                    title: 'Confirm Device Egg Removal',
+                    content: 'Are you sure you want to remove the device **{device}** from **{name}**?',
+                  },
+                },
+              },
+            },
+            nodes: {
+              title: 'Nodes',
+              page: {
+                title: 'Device Nodes',
+                toast: {
+                  added: 'Device Node added.',
+                  removed: 'Device Node deleted.',
+                },
+                modal: {
+                  add: {
+                    title: 'Add Device Node',
+                  },
+                  remove: {
+                    title: 'Confirm Device Node Removal',
+                    content: 'Are you sure you want to remove the device **{device}** from **{name}**?',
+                  },
+                },
+              },
+            },
+            servers: {
+              title: 'Servers',
+              page: {
+                title: 'Device Servers',
               },
             },
           },
@@ -7455,6 +7587,41 @@ const baseTranslations = defineTranslations({
             },
             detachMount: {
               title: 'Detach Mount',
+              content: 'Do you want to detach **{name}** from `{target}`?',
+              toast: {
+                detached: '{name} has been removed from your server.',
+              },
+            },
+          },
+        },
+        devices: {
+          title: 'Devices',
+          table: {
+            columns: {
+              attached: 'Attached',
+            },
+          },
+          button: {
+            attach: 'Attach',
+            detach: 'Detach',
+          },
+          modal: {
+            attachDevice: {
+              title: 'Attach Device',
+              content: 'Do you want to attach **{name}** to `{target}`?',
+              toast: {
+                attached: '{name} has been attached to your server.',
+              },
+            },
+            detachDevices: {
+              title: 'Detach Devices',
+              content: 'Do you want to detach **{devices}** from this server?',
+              alert: {
+                skipped: '{devices} will be skipped. Devices that are not attached cannot be detached.',
+              },
+            },
+            detachDevice: {
+              title: 'Detach Device',
               content: 'Do you want to detach **{name}** from `{target}`?',
               toast: {
                 detached: '{name} has been removed from your server.',

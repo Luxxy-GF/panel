@@ -18,6 +18,7 @@ mod capacity;
 mod config;
 mod database_agent_hosts;
 mod database_hosts;
+mod devices;
 mod duplicate;
 mod enrollment;
 mod mounts;
@@ -253,6 +254,7 @@ pub fn router(state: &State) -> OpenApiRouter<State> {
         .nest("/capacity", capacity::router(state))
         .nest("/servers", servers::router(state))
         .nest("/mounts", mounts::router(state))
+        .nest("/devices", devices::router(state))
         .nest("/database-hosts", database_hosts::router(state))
         .nest("/database-agent-hosts", database_agent_hosts::router(state))
         .nest("/backups", backups::router(state))

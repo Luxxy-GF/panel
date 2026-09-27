@@ -200,6 +200,14 @@
       "many": "{count} Mounts",
       "other": "{count} Mounts"
     },
+    "device": {
+      "zero": "{count} Geräte",
+      "one": "{count} Gerät",
+      "two": "{count} Geräte",
+      "few": "{count} Geräte",
+      "many": "{count} Geräte",
+      "other": "{count} Geräte"
+    },
     "apiKey": {
       "zero": "{count} API-Schlüssel",
       "one": "{count} API-Schlüssel",
@@ -479,6 +487,7 @@
         "additionalAllocations": "Zusätzliche Allocations",
         "externalId": "Externe ID",
         "mount": "Mount",
+        "device": "Gerät",
         "nest": "Nest",
         "lines": "Zeilen",
         "databaseHost": "Datenbank-Host",
@@ -770,6 +779,7 @@
           "redirect": "Weiterleitung"
         },
         "empty": "Keine Routen konfiguriert. Füge unten Routen, Trenner oder Weiterleitungen hinzu.",
+        "missingRoutes": "Die folgenden Seiten fehlen in dieser Routen-Konfiguration und sind für Benutzer nicht verfügbar: {routes}.",
         "unnamed": "(unbenannt)",
         "dividerPlaceholder": "Trenner-Bezeichnung (optional)",
         "redirectNamePlaceholder": "Weiterleitungsname",
@@ -3215,6 +3225,25 @@
                 }
               }
             },
+            "devices": {
+              "title": "Geräte",
+              "page": {
+                "title": "Node-Geräte",
+                "toast": {
+                  "added": "Gerät hinzugefügt.",
+                  "removed": "Gerät entfernt."
+                },
+                "modal": {
+                  "add": {
+                    "title": "Gerät hinzufügen"
+                  },
+                  "remove": {
+                    "title": "Entfernen des Geräts bestätigen",
+                    "content": "Bist du sicher, dass du das Gerät **{device}** von **{name}** entfernen möchtest?"
+                  }
+                }
+              }
+            },
             "databaseHosts": {
               "title": "Datenbank-Hosts",
               "page": {
@@ -3702,6 +3731,25 @@
                 }
               }
             },
+            "devices": {
+              "title": "Geräte",
+              "page": {
+                "title": "Server-Geräte",
+                "toast": {
+                  "added": "Gerät hinzugefügt.",
+                  "deleted": "Gerät entfernt."
+                },
+                "modal": {
+                  "add": {
+                    "title": "Gerät hinzufügen"
+                  },
+                  "remove": {
+                    "title": "Entfernen des Geräts bestätigen",
+                    "content": "Bist du sicher, dass du das Gerät **{device}** von **{name}** entfernen möchtest?"
+                  }
+                }
+              }
+            },
             "backups": {
               "title": "Backups",
               "page": {
@@ -4015,6 +4063,25 @@
                         "delete": {
                           "title": "Entfernen des Egg Mounts bestätigen",
                           "content": "Bist du sicher, dass du das Mount **{mount}** von **{egg}** entfernen möchtest?"
+                        }
+                      }
+                    }
+                  },
+                  "devices": {
+                    "title": "Geräte",
+                    "page": {
+                      "title": "Egg-Geräte",
+                      "toast": {
+                        "added": "Gerät hinzugefügt.",
+                        "deleted": "Gerät entfernt."
+                      },
+                      "modal": {
+                        "add": {
+                          "title": "Gerät hinzufügen"
+                        },
+                        "delete": {
+                          "title": "Entfernen des Geräts bestätigen",
+                          "content": "Bist du sicher, dass du das Gerät **{device}** von **{egg}** entfernen möchtest?"
                         }
                       }
                     }
@@ -5027,6 +5094,76 @@
               "title": "Server",
               "page": {
                 "title": "Mount Server"
+              }
+            }
+          }
+        },
+        "devices": {
+          "title": "Geräte",
+          "resourceName": "Gerät",
+          "tabs": {
+            "general": {
+              "page": {
+                "titleCreate": "Gerät erstellen",
+                "titleUpdate": "Gerät aktualisieren",
+                "alert": "Gerätezugriff ist eine mächtige und potenziell gefährliche Funktion. Unsachgemäße Nutzung kann zu Datenverlust oder Sicherheitslücken führen (einschließlich Container-Ausbrüchen). Stelle sicher, dass du die Auswirkungen verstehst, bevor du Geräte erstellst oder aktualisierst.",
+                "form": {
+                  "userAttachable": "Vom Benutzer einbindbar",
+                  "permissions": "Berechtigungen",
+                  "permissionsDescription": "Gerätezugriff: r zum Lesen, w zum Schreiben und m zum Erstellen von Gerätedateien."
+                },
+                "modal": {
+                  "delete": {
+                    "title": "Gerät-Löschung bestätigen"
+                  }
+                }
+              }
+            },
+            "eggs": {
+              "title": "Eggs",
+              "page": {
+                "title": "Geräte-Eggs",
+                "toast": {
+                  "added": "Egg hinzugefügt.",
+                  "removed": "Egg entfernt."
+                },
+                "modal": {
+                  "add": {
+                    "title": "Egg hinzufügen",
+                    "form": {
+                      "egg": "Egg"
+                    }
+                  },
+                  "remove": {
+                    "title": "Entfernen des Geräte-Eggs bestätigen",
+                    "content": "Bist du sicher, dass du das Gerät **{device}** von **{name}** entfernen möchtest?"
+                  }
+                }
+              }
+            },
+            "nodes": {
+              "title": "Nodes",
+              "page": {
+                "title": "Geräte-Nodes",
+                "toast": {
+                  "added": "Node hinzugefügt.",
+                  "removed": "Node entfernt."
+                },
+                "modal": {
+                  "add": {
+                    "title": "Node hinzufügen"
+                  },
+                  "remove": {
+                    "title": "Entfernen des Geräte-Nodes bestätigen",
+                    "content": "Bist du sicher, dass du das Gerät **{device}** von **{name}** entfernen möchtest?"
+                  }
+                }
+              }
+            },
+            "servers": {
+              "title": "Server",
+              "page": {
+                "title": "Geräte-Server"
               }
             }
           }
@@ -7363,6 +7500,41 @@
             },
             "detachMount": {
               "title": "Mount trennen",
+              "content": "Möchtest du **{name}** von `{target}` trennen?",
+              "toast": {
+                "detached": "{name} wurde von deinem Server getrennt."
+              }
+            }
+          }
+        },
+        "devices": {
+          "title": "Geräte",
+          "table": {
+            "columns": {
+              "attached": "Eingebunden"
+            }
+          },
+          "button": {
+            "attach": "Einbinden",
+            "detach": "Trennen"
+          },
+          "modal": {
+            "attachDevice": {
+              "title": "Gerät einbinden",
+              "content": "Möchtest du **{name}** in `{target}` einbinden?",
+              "toast": {
+                "attached": "{name} wurde in deinen Server eingebunden."
+              }
+            },
+            "detachDevices": {
+              "title": "Geräte trennen",
+              "content": "Möchtest du **{devices}** von diesem Server trennen?",
+              "alert": {
+                "skipped": "Übersprungen: {devices}. Nicht eingebundene Geräte können nicht getrennt werden."
+              }
+            },
+            "detachDevice": {
+              "title": "Gerät trennen",
               "content": "Möchtest du **{name}** von `{target}` trennen?",
               "toast": {
                 "detached": "{name} wurde von deinem Server getrennt."

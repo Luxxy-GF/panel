@@ -127,6 +127,17 @@ nestify::nest! {
 }
 
 nestify::nest! {
+    #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct Device {
+        #[schema(inline)]
+        pub target: compact_str::CompactString,
+        #[schema(inline)]
+        pub source: compact_str::CompactString,
+        #[schema(inline)]
+        pub permissions: compact_str::CompactString,
+    }
+}
+
+nestify::nest! {
     #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct DirectoryEntry {
         #[schema(inline)]
         pub name: compact_str::CompactString,
@@ -501,6 +512,8 @@ nestify::nest! {
 
         #[schema(inline)]
         pub mounts: Vec<Mount>,
+        #[schema(inline)]
+        pub devices: Vec<Device>,
         #[schema(inline)]
         pub firewall: Vec<FirewallRule>,
         #[schema(inline)]
@@ -3003,6 +3016,8 @@ pub mod system_config {
                             #[schema(inline)]
                             pub create_threads: u64,
                             #[schema(inline)]
+                            pub streaming: bool,
+                            #[schema(inline)]
                             pub part_upload_timeout: u64,
                             #[schema(inline)]
                             pub retry_limit: u64,
@@ -3285,6 +3300,8 @@ pub mod system_config {
 
                 #[schema(inline)]
                 pub allowed_mounts: Vec<compact_str::CompactString>,
+                #[schema(inline)]
+                pub allowed_devices: Vec<compact_str::CompactString>,
                 #[schema(inline)]
                 pub allowed_origins: Vec<compact_str::CompactString>,
                 #[schema(inline)]

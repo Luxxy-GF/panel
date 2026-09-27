@@ -71,7 +71,7 @@ export default function ServerNetwork() {
 
   return (
     <ServerContentContainer
-      title={t('pages.server.network.title', {})}
+      title={t('pages.server.network.allocations.title', {})}
       subtitle={t('pages.server.network.subtitle', {
         current: allocations?.total ?? 0,
         max: server.featureLimits.allocations,

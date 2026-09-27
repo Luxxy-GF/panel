@@ -1429,6 +1429,17 @@ impl DuplicableModel for Node {
         .execute(&mut **transaction)
         .await?;
 
+        sqlx::query(
+            "INSERT INTO node_devices (node_uuid, device_uuid)
+            SELECT $1, node_devices.device_uuid
+            FROM node_devices
+            WHERE node_devices.node_uuid = $2",
+        )
+        .bind(node.uuid)
+        .bind(self.uuid)
+        .execute(&mut **transaction)
+        .await?;
+
         sqlx::query!(
             "INSERT INTO node_database_hosts (node_uuid, database_host_uuid)
             SELECT $1, node_database_hosts.database_host_uuid

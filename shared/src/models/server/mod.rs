@@ -1946,7 +1946,7 @@ impl Server {
         self,
         database: &crate::database::Database,
     ) -> Result<RemoteApiServer, anyhow::Error> {
-        let (variables, backups, schedules, mounts, allocations, firewall_rules) = tokio::try_join!(
+        let (variables, backups, schedules, mounts, devices, allocations, firewall_rules) = tokio::try_join!(
             sqlx::query!(
                 "SELECT nest_egg_variables.env_variable, COALESCE(server_variables.value, nest_egg_variables.default_value) AS value
                 FROM nest_egg_variables
@@ -1977,6 +1977,14 @@ impl Server {
                 WHERE server_mounts.server_uuid = $1",
                 self.uuid
             )
+            .fetch_all(database.read()),
+            sqlx::query(
+                "SELECT devices.source, devices.target, devices.permissions
+                FROM server_devices
+                JOIN devices ON devices.uuid = server_devices.device_uuid
+                WHERE server_devices.server_uuid = $1",
+            )
+            .bind(self.uuid)
             .fetch_all(database.read()),
             sqlx::query!(
                 "SELECT node_allocations.ip, node_allocations.port
@@ -2109,6 +2117,16 @@ impl Server {
                         read_only: m.read_only,
                     })
                     .collect(),
+                devices: devices
+                    .into_iter()
+                    .map(|d| {
+                        Ok::<_, sqlx::Error>(wings_api::Device {
+                            source: d.try_get("source")?,
+                            target: d.try_get("target")?,
+                            permissions: d.try_get("permissions")?,
+                        })
+                    })
+                    .try_collect_vec()?,
                 firewall: firewall::decode_rules(firewall_rules)?
                     .into_iter()
                     .map(Into::into)
