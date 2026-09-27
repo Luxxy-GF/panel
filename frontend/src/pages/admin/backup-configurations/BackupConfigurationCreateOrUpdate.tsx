@@ -87,11 +87,14 @@ export default function BackupConfigurationCreateOrUpdate({
   const [openModal, setOpenModal] = useState<'delete' | 'duplicate' | null>(null);
   const [removeProvider, setRemoveProvider] = useState<typeof backupDisk | null>(null);
 
-  const form = useFormEngine<BackupConfigFormValues>('admin.backupConfigurations.createOrUpdate', {
-    schema: adminBackupConfigurationUpdateSchema.unwrap(),
-    initialValues: backupConfigurationEmptyFormValues,
-    validateInputOnBlur: true,
-  });
+  const form = useFormEngine<BackupConfigFormValues, z.infer<typeof adminBackupConfigurationUpdateSchema>>(
+    'admin.backupConfigurations.createOrUpdate',
+    {
+      schema: adminBackupConfigurationUpdateSchema.unwrap(),
+      initialValues: backupConfigurationEmptyFormValues,
+      validateInputOnBlur: true,
+    },
+  );
 
   const s3Form = useFormEngine<z.infer<typeof adminBackupConfigurationS3Schema>>('admin.backupConfigurations.s3', {
     schema: adminBackupConfigurationS3Schema,
@@ -152,10 +155,10 @@ export default function BackupConfigurationCreateOrUpdate({
   };
 
   const buildBackupConfigs = () => ({
-    s3: s3Form.isDirty() ? adminBackupConfigurationS3Schema.parse(s3Form.getValues()) : null,
-    restic: resticForm.isDirty() ? adminBackupConfigurationResticSchema.parse(resticForm.getValues()) : null,
-    pbs: pbsForm.isDirty() ? adminBackupConfigurationPbsSchema.parse(pbsForm.getValues()) : null,
-    kopia: kopiaForm.isDirty() ? adminBackupConfigurationKopiaSchema.parse(kopiaForm.getValues()) : null,
+    s3: s3Form.isDirty() ? s3Form.getTransformedValues() : null,
+    restic: resticForm.isDirty() ? resticForm.getTransformedValues() : null,
+    pbs: pbsForm.isDirty() ? pbsForm.getTransformedValues() : null,
+    kopia: kopiaForm.isDirty() ? kopiaForm.getTransformedValues() : null,
   });
 
   const submitDisabled =
@@ -168,13 +171,13 @@ export default function BackupConfigurationCreateOrUpdate({
     form,
     createFn: () =>
       createBackupConfiguration({
-        ...adminBackupConfigurationUpdateSchema.parse(form.getValues()),
+        ...form.getTransformedValues(),
         backupConfigs: buildBackupConfigs(),
       }),
     updateFn: contextBackupConfiguration
       ? () =>
           updateBackupConfiguration(contextBackupConfiguration.uuid, {
-            ...adminBackupConfigurationUpdateSchema.parse(form.getValues()),
+            ...form.getTransformedValues(),
             backupConfigs: buildBackupConfigs(),
           })
       : undefined,

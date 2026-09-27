@@ -1,5 +1,4 @@
 import { ModalProps } from '@mantine/core';
-import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
 import installServer from '@/api/server/settings/installServer.ts';
@@ -30,7 +29,7 @@ export default function SettingsReinstallModal({ ...props }: ModalProps) {
       truncateDirectory: false,
       startOnCompletion: false,
     },
-    validate: zod4Resolver(serverSettingsReinstallSchema),
+    schema: serverSettingsReinstallSchema,
     onClose: props.onClose,
     onSubmit: async (values) => {
       await installServer(server.uuid, values);

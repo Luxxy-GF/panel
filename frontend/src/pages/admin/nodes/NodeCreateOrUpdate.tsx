@@ -85,10 +85,8 @@ export default function NodeCreateOrUpdate({ contextNode }: { contextNode?: z.in
     z.infer<typeof adminNodeSchema>
   >({
     form,
-    createFn: () => createNode(adminNodeUpdateSchema.parse(form.getValues())),
-    updateFn: contextNode
-      ? () => updateNode(contextNode.uuid, adminNodeUpdateSchema.parse(form.getValues()))
-      : undefined,
+    createFn: () => createNode(form.getTransformedValues()),
+    updateFn: contextNode ? () => updateNode(contextNode.uuid, form.getTransformedValues()) : undefined,
     deleteFn: contextNode ? () => deleteNode(contextNode.uuid) : undefined,
     doUpdate: !!contextNode,
     basePath: '/admin/nodes',
@@ -150,7 +148,7 @@ export default function NodeCreateOrUpdate({ contextNode }: { contextNode?: z.in
     setLoading(true);
 
     try {
-      const node = await createNode(adminNodeUpdateSchema.parse(form.getValues()));
+      const node = await createNode(form.getTransformedValues());
       queryClient.invalidateQueries({ queryKey: queryKeys.admin.nodes.all() });
 
       const ports = resolvePorts(allocationPorts).resolved;

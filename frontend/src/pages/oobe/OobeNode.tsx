@@ -19,6 +19,7 @@ import AlertError from '@/elements/alerts/AlertError.tsx';
 import Button from '@/elements/buttons/Button.tsx';
 import Card from '@/elements/data-display/Card.tsx';
 import Alert from '@/elements/feedback/Alert.tsx';
+import { schemaFormOptions } from '@/elements/form-engine/useFormEngine.ts';
 import NodeAllocationIpInput from '@/elements/input/NodeAllocationIpInput.tsx';
 import NumberInput from '@/elements/input/NumberInput.tsx';
 import SizeInput from '@/elements/input/SizeInput.tsx';
@@ -56,7 +57,7 @@ export default function OobeNode({ onNext, onBack, canGoBack, skipFrom, data }: 
       disk: existingNode?.disk ?? 16384,
     },
     validateInputOnBlur: true,
-    validate: zod4Resolver(oobeNodeSchema),
+    ...schemaFormOptions<z.infer<typeof oobeNodeSchema>>(oobeNodeSchema),
   });
 
   const allocationsForm = useForm<z.infer<typeof adminNodeAllocationsSchema>>({
@@ -85,7 +86,7 @@ export default function OobeNode({ onNext, onBack, canGoBack, skipFrom, data }: 
     setResolvedPorts(resolved);
   }, [allocationsForm.values.ports]);
 
-  const onSubmit = async () => {
+  const onSubmit = async (values: z.infer<typeof oobeNodeSchema>) => {
     setLoading(true);
 
     try {
@@ -93,16 +94,16 @@ export default function OobeNode({ onNext, onBack, canGoBack, skipFrom, data }: 
 
       if (isEdit) {
         await updateNode(existingNode.uuid, {
-          name: form.values.name,
+          name: values.name,
           description: existingNode.description,
           deploymentEnabled: existingNode.deploymentEnabled,
           maintenanceEnabled: existingNode.maintenanceEnabled,
-          publicUrl: form.values.publicUrl,
-          url: form.values.url,
-          sftpHost: form.values.sftpHost,
-          sftpPort: form.values.sftpPort,
-          memory: form.values.memory,
-          disk: form.values.disk,
+          publicUrl: values.publicUrl,
+          url: values.url,
+          sftpHost: values.sftpHost,
+          sftpPort: values.sftpPort,
+          memory: values.memory,
+          disk: values.disk,
           locationUuid: existingNode.location.uuid,
           backupConfigurationUuid: existingNode.backupConfiguration?.uuid ?? null,
         });
@@ -118,16 +119,16 @@ export default function OobeNode({ onNext, onBack, canGoBack, skipFrom, data }: 
         }
       } else {
         const node = await createNode({
-          name: form.values.name,
+          name: values.name,
           description: null,
           deploymentEnabled: true,
           maintenanceEnabled: false,
-          publicUrl: form.values.publicUrl,
-          url: form.values.url,
-          sftpHost: form.values.sftpHost,
-          sftpPort: form.values.sftpPort,
-          memory: form.values.memory,
-          disk: form.values.disk,
+          publicUrl: values.publicUrl,
+          url: values.url,
+          sftpHost: values.sftpHost,
+          sftpPort: values.sftpPort,
+          memory: values.memory,
+          disk: values.disk,
           locationUuid: locationUuid!,
           backupConfigurationUuid: null,
         });
@@ -158,7 +159,7 @@ export default function OobeNode({ onNext, onBack, canGoBack, skipFrom, data }: 
 
       {error && <AlertError error={error} setError={setError} />}
 
-      <form onSubmit={form.onSubmit(() => onSubmit())}>
+      <form onSubmit={form.onSubmit(onSubmit)}>
         <Stack gap='xl'>
           <div className='flex flex-col gap-4'>
             <TextInput

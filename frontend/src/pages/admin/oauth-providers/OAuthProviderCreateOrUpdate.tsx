@@ -63,9 +63,9 @@ export default function OAuthProviderCreateOrUpdate({
     z.infer<typeof adminOAuthProviderSchema>
   >({
     form,
-    createFn: () => createOAuthProvider(adminOAuthProviderUpdateSchema.parse(form.getValues())),
+    createFn: () => createOAuthProvider(form.getTransformedValues()),
     updateFn: contextOAuthProvider
-      ? () => updateOAuthProvider(contextOAuthProvider.uuid, adminOAuthProviderUpdateSchema.parse(form.getValues()))
+      ? () => updateOAuthProvider(contextOAuthProvider.uuid, form.getTransformedValues())
       : undefined,
     deleteFn: contextOAuthProvider ? () => deleteOAuthProvider(contextOAuthProvider.uuid) : undefined,
     doUpdate: !!contextOAuthProvider,
