@@ -9,7 +9,7 @@ import { httpErrorToHuman } from '@/api/axios.ts';
 import Button from '@/elements/buttons/Button.tsx';
 import { AdminCan } from '@/elements/Can.tsx';
 import AdminSubContentContainer from '@/elements/containers/AdminSubContentContainer.tsx';
-import Table from '@/elements/data-display/Table.tsx';
+import Table, { tableSelectionHeader } from '@/elements/data-display/Table.tsx';
 import SelectionArea from '@/elements/dnd/SelectionArea.tsx';
 import ImportOverlay from '@/elements/ImportOverlay.tsx';
 import ContextMenu from '@/elements/overlays/ContextMenu.tsx';
@@ -58,6 +58,8 @@ function EggsContainer({ contextNest }: { contextNest: z.infer<typeof adminNestS
     add: addSelectedEgg,
     remove: removeSelectedEgg,
     clear: clearSelectedEggs,
+    selectAll,
+    allSelected,
     selectionAreaProps,
   } = useTableSelection({ items: eggs?.data });
 
@@ -94,7 +96,14 @@ function EggsContainer({ contextNest }: { contextNest: z.infer<typeof adminNestS
     handleImport(file);
   };
 
-  const columns = ['', ...eggTableColumns()];
+  const columns = [
+    tableSelectionHeader({
+      checked: allSelected,
+      indeterminate: selectedEggs.size > 0 && !allSelected,
+      onChange: (checked) => (checked ? selectAll() : clearSelectedEggs()),
+    }),
+    ...eggTableColumns(),
+  ];
 
   return (
     <AdminSubContentContainer

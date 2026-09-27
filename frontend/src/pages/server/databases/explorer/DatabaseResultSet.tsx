@@ -4,7 +4,7 @@ import classNames from 'classnames';
 import { MouseEvent as ReactMouseEvent, ReactNode, Ref, useState } from 'react';
 import { z } from 'zod';
 import ActionIcon from '@/elements/buttons/ActionIcon.tsx';
-import Table, { TableData, TableHeaderProps, TableRow } from '@/elements/data-display/Table.tsx';
+import Table, { TableData, TableHeaderProps, TableRow, tableSelectionHeader } from '@/elements/data-display/Table.tsx';
 import SelectionArea from '@/elements/dnd/SelectionArea.tsx';
 import Alert from '@/elements/feedback/Alert.tsx';
 import Checkbox from '@/elements/input/Checkbox.tsx';
@@ -154,15 +154,13 @@ export default function DatabaseResultSet({
   const selectableRows = editing ? result.rows.filter((_, rowIndex) => !editing.isLocked(rowIndex)).length : 0;
 
   if (editing) {
-    columns.unshift({
-      rightSection: (
-        <Checkbox
-          checked={editing.selected.size > 0 && editing.selected.size === selectableRows}
-          indeterminate={editing.selected.size > 0 && editing.selected.size < selectableRows}
-          onChange={editing.onToggleAll}
-        />
-      ),
-    });
+    columns.unshift(
+      tableSelectionHeader({
+        checked: editing.selected.size > 0 && editing.selected.size === selectableRows,
+        indeterminate: editing.selected.size > 0 && editing.selected.size < selectableRows,
+        onChange: editing.onToggleAll,
+      }),
+    );
   }
 
   const table = (

@@ -6,7 +6,7 @@ import { httpErrorToHuman } from '@/api/axios.ts';
 import Button from '@/elements/buttons/Button.tsx';
 import { AdminCan } from '@/elements/Can.tsx';
 import AdminSubContentContainer from '@/elements/containers/AdminSubContentContainer.tsx';
-import Table from '@/elements/data-display/Table.tsx';
+import Table, { tableSelectionHeader } from '@/elements/data-display/Table.tsx';
 import SelectionArea from '@/elements/dnd/SelectionArea.tsx';
 import Group from '@/elements/layout/Group.tsx';
 import ConfirmationModal from '@/elements/modals/ConfirmationModal.tsx';
@@ -63,6 +63,8 @@ export default function AdminNodeServers({ node }: { node: AdminNode }) {
     selected: selectedServers,
     clear: clearSelectedServers,
     toggle: toggleServer,
+    selectAll,
+    allSelected,
     selectionAreaProps,
   } = useTableSelection<z.infer<typeof adminServerSchema>>({ items: nodeServers?.data });
 
@@ -159,7 +161,14 @@ export default function AdminNodeServers({ node }: { node: AdminNode }) {
     }
   };
 
-  const columns = ['', ...serverTableColumns()];
+  const columns = [
+    tableSelectionHeader({
+      checked: allSelected,
+      indeterminate: selectedServers.size > 0 && !allSelected,
+      onChange: (checked) => (checked ? selectAll() : clearSelectedServers()),
+    }),
+    ...serverTableColumns(),
+  ];
 
   return (
     <>

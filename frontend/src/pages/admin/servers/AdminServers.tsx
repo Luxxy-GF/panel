@@ -7,7 +7,7 @@ import getServers from '@/api/admin/servers/getServers.ts';
 import Button from '@/elements/buttons/Button.tsx';
 import { AdminCan } from '@/elements/Can.tsx';
 import AdminContentContainer from '@/elements/containers/AdminContentContainer.tsx';
-import Table from '@/elements/data-display/Table.tsx';
+import Table, { tableSelectionHeader } from '@/elements/data-display/Table.tsx';
 import SelectionArea from '@/elements/dnd/SelectionArea.tsx';
 import { queryKeys } from '@/lib/queryKeys.ts';
 import { AdminServer } from '@/lib/schemas/admin/servers.ts';
@@ -44,6 +44,8 @@ function ServersContainer() {
     selected: selectedServers,
     clear: clearSelectedServers,
     toggle: toggleServer,
+    selectAll,
+    allSelected,
     selectionAreaProps,
   } = useTableSelection<AdminServer>({ items: servers?.data });
 
@@ -88,7 +90,14 @@ function ServersContainer() {
       >
         <SelectionArea {...selectionAreaProps}>
           <Table
-            columns={['', ...serverTableColumns()]}
+            columns={[
+              tableSelectionHeader({
+                checked: allSelected,
+                indeterminate: selectedServers.size > 0 && !allSelected,
+                onChange: (checked) => (checked ? selectAll() : clearSelectedServers()),
+              }),
+              ...serverTableColumns(),
+            ]}
             loading={loading}
             pagination={servers}
             onPageSelect={setPage}

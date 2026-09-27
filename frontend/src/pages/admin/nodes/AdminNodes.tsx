@@ -8,7 +8,7 @@ import getNodes from '@/api/admin/nodes/getNodes.ts';
 import Button from '@/elements/buttons/Button.tsx';
 import { AdminCan } from '@/elements/Can.tsx';
 import AdminContentContainer from '@/elements/containers/AdminContentContainer.tsx';
-import Table from '@/elements/data-display/Table.tsx';
+import Table, { tableSelectionHeader } from '@/elements/data-display/Table.tsx';
 import SelectionArea from '@/elements/dnd/SelectionArea.tsx';
 import { queryKeys } from '@/lib/queryKeys.ts';
 import { adminNodeSchema } from '@/lib/schemas/admin/nodes.ts';
@@ -45,6 +45,9 @@ function NodesContainer() {
     selected: selectedNodes,
     setSelected: setSelectedNodes,
     toggle: toggleNode,
+    clear: clearSelectedNodes,
+    selectAll,
+    allSelected,
     selectionAreaProps,
   } = useTableSelection<z.infer<typeof adminNodeSchema>>({ items: nodes?.data });
 
@@ -55,7 +58,14 @@ function NodesContainer() {
   });
   const showLocationModal = !locationModalDismissed && locationsProbe !== undefined && locationsProbe.data.length === 0;
 
-  const columns = ['', ...nodeTableColumns()];
+  const columns = [
+    tableSelectionHeader({
+      checked: allSelected,
+      indeterminate: selectedNodes.size > 0 && !allSelected,
+      onChange: (checked) => (checked ? selectAll() : clearSelectedNodes()),
+    }),
+    ...nodeTableColumns(),
+  ];
 
   return (
     <>

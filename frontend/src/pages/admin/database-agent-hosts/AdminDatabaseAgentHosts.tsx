@@ -7,7 +7,7 @@ import getDatabaseAgentHosts from '@/api/admin/database-agent-hosts/getDatabaseA
 import Button from '@/elements/buttons/Button.tsx';
 import { AdminCan } from '@/elements/Can.tsx';
 import AdminContentContainer from '@/elements/containers/AdminContentContainer.tsx';
-import Table from '@/elements/data-display/Table.tsx';
+import Table, { tableSelectionHeader } from '@/elements/data-display/Table.tsx';
 import SelectionArea from '@/elements/dnd/SelectionArea.tsx';
 import { queryKeys } from '@/lib/queryKeys.ts';
 import { adminDatabaseAgentHostSchema } from '@/lib/schemas/admin/databaseAgentHosts.ts';
@@ -41,10 +41,20 @@ function DatabaseAgentHostsContainer() {
     selected: selectedHosts,
     setSelected: setSelectedHosts,
     toggle: toggleHost,
+    clear: clearSelectedHosts,
+    selectAll,
+    allSelected,
     selectionAreaProps,
   } = useTableSelection<z.infer<typeof adminDatabaseAgentHostSchema>>({ items: databaseAgentHosts?.data });
 
-  const columns = ['', ...databaseAgentHostTableColumns()];
+  const columns = [
+    tableSelectionHeader({
+      checked: allSelected,
+      indeterminate: selectedHosts.size > 0 && !allSelected,
+      onChange: (checked) => (checked ? selectAll() : clearSelectedHosts()),
+    }),
+    ...databaseAgentHostTableColumns(),
+  ];
 
   return (
     <AdminContentContainer
