@@ -255,6 +255,7 @@ const baseTranslations = defineTranslations({
         username: 'Username',
         usernameOrEmail: 'Username/Email',
         server: 'Server',
+        servers: 'Servers',
         url: 'URL',
         email: 'Email',
         path: 'Path',
@@ -1251,7 +1252,7 @@ const baseTranslations = defineTranslations({
           tooltip: {
             removeFromGroup: 'Remove from Group',
             addToGroup: 'Add to Group',
-            addServerToGroup: 'Add Server to Group',
+            addServerToGroup: 'Add Servers to Group',
             groupActions: 'Group Actions',
             noGroups: 'No groups available to add server to',
             noGroup: 'This server is not in any group',
@@ -1285,10 +1286,10 @@ const baseTranslations = defineTranslations({
                     },
                   },
                   addServerToGroup: {
-                    title: 'Add Server to {group}',
+                    title: 'Add Servers to {group}',
                     noServers: 'All servers are already in this group.',
                     toast: {
-                      added: 'Server added to group.',
+                      added: '{servers} added to group.',
                     },
                   },
                   removeServerFromGroup: {

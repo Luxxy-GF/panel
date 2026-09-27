@@ -441,6 +441,7 @@
         "username": "Benutzername",
         "usernameOrEmail": "Benutzername/E-Mail",
         "server": "Server",
+        "servers": "Server",
         "url": "URL",
         "email": "E-Mail",
         "path": "Pfad",
@@ -1444,7 +1445,7 @@
                     "title": "Server zu {group} hinzufügen",
                     "noServers": "Alle Server sind bereits in dieser Gruppe.",
                     "toast": {
-                      "added": "Server zur Gruppe hinzugefügt."
+                      "added": "{servers} zur Gruppe hinzugefügt."
                     }
                   },
                   "removeServerFromGroup": {
