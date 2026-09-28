@@ -2394,9 +2394,17 @@
                 "toast": {
                   "updated": "Captcha-Einstellungen aktualisiert."
                 },
+                "cap": {
+                  "form": {
+                    "apiUrl": "Instanz-URL",
+                    "apiUrlDescription": "Öffentliche URL deiner Cap-Standalone-Instanz, ohne den Website-Schlüssel."
+                  }
+                },
                 "recaptcha": {
                   "form": {
-                    "v3": "V3"
+                    "v3": "V3",
+                    "threshold": "Score-Schwellenwert",
+                    "thresholdDescription": "Erforderlicher Mindestwert für die Verifizierung, von 0 bis 1. Höhere Werte sind strenger. Standard: 0,5."
                   }
                 }
               }

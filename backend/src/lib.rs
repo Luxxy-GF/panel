@@ -1007,6 +1007,39 @@ pub async fn handle_startup() -> Result<
                     }
 
                     let is_index = asset.is_none();
+                    let mut script_nonce = None;
+                    let content_security_policy = if is_index {
+                        let settings = state.settings.get().await?;
+                        let script_csp = settings.captcha_provider.to_csp_script_src();
+                        let style_csp = settings.captcha_provider.to_csp_style_src();
+                        if matches!(
+                            settings.captcha_provider,
+                            shared::settings::CaptchaProvider::Cap { .. }
+                        ) {
+                            script_nonce = Some(uuid::Uuid::new_v4().simple().to_string());
+                        }
+                        let nonce_csp = script_nonce
+                            .as_ref()
+                            .map(|nonce| format!(" 'nonce-{nonce}'"))
+                            .unwrap_or_default();
+
+                        Some(format!(
+                            "default-src 'self'; \
+                                script-src 'self' blob: {script_csp}{nonce_csp}; \
+                                frame-src *; \
+                                style-src 'self' 'unsafe-inline' {style_csp}; \
+                                connect-src * blob:; \
+                                font-src 'self' blob: data:; \
+                                img-src * blob: data:; \
+                                media-src 'self' blob: data:; \
+                                object-src blob: data:; \
+                                base-uri 'self'; \
+                                form-action 'self'; \
+                                frame-ancestors 'self';"
+                        ))
+                    } else {
+                        None
+                    };
 
                     let accepts_gzip = parts
                         .headers
@@ -1024,13 +1057,21 @@ pub async fn handle_startup() -> Result<
                         });
 
                     let (body, content_type, content_encoding) = match asset {
-                        None => (
-                            Body::from(axum::body::Bytes::from_owner(
-                                state.settings.get_rendered_index_html(),
-                            )),
-                            "text/html",
-                            None,
-                        ),
+                        None => {
+                            let html = state.settings.get_rendered_index_html();
+                            let body = if let Some(nonce) = script_nonce {
+                                let html: &str = html.as_ref();
+                                Body::from(html.replacen(
+                                    "</head>",
+                                    &format!("<meta name=\"cap-script-nonce\" content=\"{nonce}\"></head>"),
+                                    1,
+                                ))
+                            } else {
+                                Body::from(axum::body::Bytes::from_owner(html))
+                            };
+
+                            (body, "text/html", None)
+                        }
                         Some(asset) => {
                             let content_type = frontend_asset_content_type(&asset);
 
@@ -1054,32 +1095,7 @@ pub async fn handle_startup() -> Result<
                     .with_header("Content-Type", content_type)
                     .with_optional_header("Content-Encoding", content_encoding)
                     .with_header("Vary", "Accept-Encoding")
-                    .with_optional_header(
-                        "Content-Security-Policy",
-                        if is_index {
-                            let settings = state.settings.get().await?;
-                            let script_csp = settings.captcha_provider.to_csp_script_src();
-                            let style_csp = settings.captcha_provider.to_csp_style_src();
-                            drop(settings);
-
-                            Some(format!(
-                                "default-src 'self'; \
-                                    script-src 'self' blob: {script_csp}; \
-                                    frame-src *; \
-                                    style-src 'self' 'unsafe-inline' {style_csp}; \
-                                    connect-src * blob:; \
-                                    font-src 'self' blob: data:; \
-                                    img-src * blob: data:; \
-                                    media-src 'self' blob: data:; \
-                                    object-src blob: data:; \
-                                    base-uri 'self'; \
-                                    form-action 'self'; \
-                                    frame-ancestors 'self';"
-                            ))
-                        } else {
-                            None
-                        },
-                    )
+                    .with_optional_header("Content-Security-Policy", content_security_policy)
                     .with_header("X-Content-Type-Options", "nosniff")
                     .with_header("X-Frame-Options", "SAMEORIGIN")
                     .ok();

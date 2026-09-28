@@ -22,6 +22,21 @@ export function useCaptchaProviderVariants(): Partial<
   ];
 
   return {
+    cap: {
+      formId: 'admin.settings.captcha.cap',
+      defaults: { apiUrl: '', siteKey: '', secretKey: '' },
+      fields: [
+        {
+          type: 'text',
+          name: 'apiUrl',
+          label: t('pages.admin.settings.tabs.captcha.page.cap.form.apiUrl', {}),
+          description: t('pages.admin.settings.tabs.captcha.page.cap.form.apiUrlDescription', {}),
+          props: { placeholder: 'https://cap.example.com' },
+          required: true,
+        },
+        ...siteAndSecret,
+      ],
+    },
     turnstile: {
       formId: 'admin.settings.captcha.turnstile',
       defaults: { siteKey: '', secretKey: '' },
@@ -34,7 +49,7 @@ export function useCaptchaProviderVariants(): Partial<
     },
     recaptcha: {
       formId: 'admin.settings.captcha.recaptcha',
-      defaults: { siteKey: '', secretKey: '', v3: false },
+      defaults: { siteKey: '', secretKey: '', v3: false, threshold: 0.5 },
       fields: [
         ...siteAndSecret,
         {
@@ -42,6 +57,15 @@ export function useCaptchaProviderVariants(): Partial<
           name: 'v3',
           label: t('pages.admin.settings.tabs.captcha.page.recaptcha.form.v3', {}),
           colSpan: 'full',
+        },
+        {
+          type: 'number',
+          name: 'threshold',
+          label: t('pages.admin.settings.tabs.captcha.page.recaptcha.form.threshold', {}),
+          description: t('pages.admin.settings.tabs.captcha.page.recaptcha.form.thresholdDescription', {}),
+          required: true,
+          when: (values) => values.type === 'recaptcha' && values.v3,
+          props: { min: 0, max: 1, step: 0.1, decimalScale: 2 },
         },
       ],
     },

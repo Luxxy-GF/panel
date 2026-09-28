@@ -54,6 +54,7 @@ export const adminSettingsCaptchaProviderRecaptchaSchema = z.object({
   siteKey: z.string().min(1).max(255),
   secretKey: z.string().min(1).max(255),
   v3: z.boolean(),
+  threshold: z.number().min(0).max(1).default(0.5),
 });
 
 export const adminSettingsCaptchaProviderHcaptchaSchema = z.object({
@@ -68,12 +69,34 @@ export const adminSettingsCaptchaProviderFriendlyCaptchaSchema = z.object({
   apiKey: z.string().min(1).max(255),
 });
 
+export const adminSettingsCaptchaProviderCapSchema = z.object({
+  type: z.literal('cap'),
+  apiUrl: z
+    .url({ protocol: /^https?$/ })
+    .max(255)
+    .refine(
+      (value) => {
+        if (!URL.canParse(value)) return false;
+        const url = new URL(value);
+        return !url.username && !url.password && !value.includes('?') && !value.includes('#');
+      },
+      { message: 'The URL must not contain credentials, a query, or a fragment' },
+    ),
+  siteKey: z
+    .string()
+    .min(1)
+    .max(255)
+    .regex(/^[a-zA-Z0-9_-]+$/),
+  secretKey: z.string().min(1).max(255),
+});
+
 export const adminSettingsCaptchaProviderSchema = z.discriminatedUnion('type', [
   adminSettingsCaptchaProviderNoneSchema,
   adminSettingsCaptchaProviderTurnstileSchema,
   adminSettingsCaptchaProviderRecaptchaSchema,
   adminSettingsCaptchaProviderHcaptchaSchema,
   adminSettingsCaptchaProviderFriendlyCaptchaSchema,
+  adminSettingsCaptchaProviderCapSchema,
 ]);
 
 export const adminSettingsEmailNoneSchema = z.object({

@@ -2277,9 +2277,18 @@ const baseTranslations = defineTranslations({
                 toast: {
                   updated: 'Captcha settings updated.',
                 },
+                cap: {
+                  form: {
+                    apiUrl: 'Instance URL',
+                    apiUrlDescription: 'Public URL of your Cap Standalone instance, without the site key.',
+                  },
+                },
                 recaptcha: {
                   form: {
                     v3: 'V3',
+                    threshold: 'Score threshold',
+                    thresholdDescription:
+                      'Minimum score required to pass verification, from 0 to 1. Higher values are stricter. Default: 0.5.',
                   },
                 },
               },

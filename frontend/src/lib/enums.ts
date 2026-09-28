@@ -111,6 +111,7 @@ export const captchaProviderTypeLabelMapping: Record<
   recaptcha: 'reCAPTCHA',
   hcaptcha: 'hCaptcha',
   friendly_captcha: 'Friendly Captcha',
+  cap: 'Cap',
 };
 
 export const compressionLevelLabelMapping: Record<z.infer<typeof compressionLevel>, () => string> = {
