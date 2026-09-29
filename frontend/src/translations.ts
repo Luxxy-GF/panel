@@ -85,6 +85,7 @@ const baseTranslations = defineTranslations({
         details: 'Details',
         loadLogs: 'Load Logs',
         sendTestEmail: 'Send Test Email',
+        test: 'Test',
         setPrimary: 'Set Primary',
         unsetPrimary: 'Unset Primary',
         leavePage: 'Leave Page',
@@ -4798,6 +4799,14 @@ const baseTranslations = defineTranslations({
                     title: 'Confirm Provider Settings Removal',
                     content:
                       'This will remove the **{provider}** settings when saving. Any existing backups relying on these configuration options will stop working.',
+                  },
+                  test: {
+                    title: 'Test Backup Configuration',
+                    content:
+                      'Checks the current form values from the selected node without saving them. For Btrfs and ZFS only the tooling and filesystem are checked, server volumes are verified once a backup runs.',
+                    run: 'Run Test',
+                    successful: 'The node can use this backup configuration, the test took {duration}.',
+                    failed: 'The test failed after {duration}.',
                   },
                 },
                 s3: {

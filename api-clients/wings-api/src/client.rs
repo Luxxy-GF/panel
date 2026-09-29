@@ -1450,6 +1450,20 @@ impl WingsClient {
         request_impl(self, Method::GET, "/api/system", None::<&()>, None).await
     }
 
+    pub async fn post_system_backups_test(
+        &self,
+        data: &super::system_backups_test::post::RequestBody,
+    ) -> Result<super::system_backups_test::post::Response, ApiHttpError> {
+        request_impl(
+            self,
+            Method::POST,
+            "/api/system/backups/test",
+            Some(data),
+            None,
+        )
+        .await
+    }
+
     pub async fn get_system_config(
         &self,
     ) -> Result<super::system_config::get::Response, ApiHttpError> {

@@ -279,6 +279,7 @@
         "details": "Details",
         "loadLogs": "Logs laden",
         "sendTestEmail": "Test-E-Mail senden",
+        "test": "Testen",
         "setPrimary": "Als primär festlegen",
         "unsetPrimary": "Als primär entfernen",
         "leavePage": "Seite verlassen",
@@ -2038,12 +2039,12 @@
                   "cacheCalls": "Cache-Aufrufe",
                   "cacheHits": "Cache-Treffer ({percent}%)",
                   "cacheMisses": "Cache-Fehlversuche ({percent}%)",
-                  "cacheAverageLatency": "\u00d8 {latency}",
+                  "cacheAverageLatency": "Ø {latency}",
                   "slowestCachedCall": "Langsamster Cache-Aufruf",
                   "cacheBreakdown": {
-                    "title": "Aufrufaufschl\u00fcsselung",
+                    "title": "Aufrufaufschlüsselung",
                     "calls": "Aufrufe",
-                    "averageLatency": "\u00d8 Latenz",
+                    "averageLatency": "Ø Latenz",
                     "localHits": "Treffer im Arbeitsspeicher",
                     "remoteHits": "Treffer in Redis",
                     "coalescedWaits": "Auf anderen Aufruf gewartet",
@@ -4794,6 +4795,13 @@
                   "removeProvider": {
                     "title": "Entfernen der Provider-Einstellungen bestätigen",
                     "content": "Beim Speichern werden die **{provider}**-Einstellungen entfernt. Bereits vorhandene Backups, die auf diesen Konfigurations-Optionen basieren, werden nicht mehr funktionieren."
+                  },
+                  "test": {
+                    "title": "Backup-Konfiguration testen",
+                    "content": "Prüft die aktuellen Formularwerte von der ausgewählten Node aus, ohne sie zu speichern. Bei Btrfs und ZFS werden nur die Werkzeuge und das Dateisystem geprüft, die Server-Volumes werden erst beim Erstellen eines Backups überprüft.",
+                    "run": "Test ausführen",
+                    "successful": "Die Node kann diese Backup-Konfiguration verwenden, der Test dauerte {duration}.",
+                    "failed": "Der Test ist nach {duration} fehlgeschlagen."
                   }
                 },
                 "s3": {
