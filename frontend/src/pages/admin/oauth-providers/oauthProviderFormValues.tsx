@@ -9,7 +9,7 @@ export const oauthProviderEmptyFormValues: OAuthFormValues = {
   name: '',
   description: null,
   clientId: '',
-  clientSecret: '',
+  clientSecret: null,
   authUrl: '',
   tokenUrl: '',
   infoUrl: '',
@@ -27,6 +27,7 @@ export const oauthProviderEmptyFormValues: OAuthFormValues = {
   linkViewable: true,
   userManageable: true,
   basicAuth: false,
+  pkce: false,
 };
 
 export const oauthProviderToFormValues = (
@@ -53,9 +54,10 @@ export const oauthProviderToFormValues = (
   linkViewable: provider.linkViewable,
   userManageable: provider.userManageable,
   basicAuth: provider.basicAuth,
+  pkce: provider.pkce,
 });
 
-export function useOAuthProviderFormFields(isUpdate: boolean): {
+export function useOAuthProviderFormFields(): {
   fieldsTop: FieldDef<OAuthFormValues>[];
   fieldsMain: FieldDef<OAuthFormValues>[];
 } {
@@ -77,7 +79,7 @@ export function useOAuthProviderFormFields(isUpdate: boolean): {
       type: 'password',
       name: 'clientSecret',
       label: t('pages.admin.oAuthProviders.tabs.general.page.form.clientSecret', {}),
-      props: { withAsterisk: !isUpdate },
+      description: t('pages.admin.oAuthProviders.tabs.general.page.form.clientSecretDescription', {}),
     },
     {
       type: 'text',
@@ -102,6 +104,12 @@ export function useOAuthProviderFormFields(isUpdate: boolean): {
       name: 'basicAuth',
       label: t('pages.admin.oAuthProviders.tabs.general.page.form.basicAuth', {}),
       description: t('pages.admin.oAuthProviders.tabs.general.page.form.basicAuthDescription', {}),
+    },
+    {
+      type: 'switch',
+      name: 'pkce',
+      label: t('pages.admin.oAuthProviders.tabs.general.page.form.pkce', {}),
+      description: t('pages.admin.oAuthProviders.tabs.general.page.form.pkceDescription', {}),
     },
     {
       type: 'tags',

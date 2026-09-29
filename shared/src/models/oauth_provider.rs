@@ -21,7 +21,7 @@ pub struct OAuthProvider {
     pub description: Option<compact_str::CompactString>,
 
     pub client_id: compact_str::CompactString,
-    pub client_secret: EncryptedString,
+    pub client_secret: Option<EncryptedString>,
     pub auth_url: String,
     pub token_url: String,
     pub info_url: String,
@@ -41,6 +41,7 @@ pub struct OAuthProvider {
     pub link_viewable: bool,
     pub user_manageable: bool,
     pub basic_auth: bool,
+    pub pkce: bool,
 
     pub created: chrono::NaiveDateTime,
 
@@ -155,6 +156,10 @@ impl BaseModel for OAuthProvider {
                 compact_str::format_compact!("{prefix}basic_auth"),
             ),
             (
+                "oauth_providers.pkce",
+                compact_str::format_compact!("{prefix}pkce"),
+            ),
+            (
                 "oauth_providers.created",
                 compact_str::format_compact!("{prefix}created"),
             ),
@@ -200,6 +205,7 @@ impl BaseModel for OAuthProvider {
             user_manageable: row
                 .try_get(compact_str::format_compact!("{prefix}user_manageable").as_str())?,
             basic_auth: row.try_get(compact_str::format_compact!("{prefix}basic_auth").as_str())?,
+            pkce: row.try_get(compact_str::format_compact!("{prefix}pkce").as_str())?,
             created: row.try_get(compact_str::format_compact!("{prefix}created").as_str())?,
             extension_data: Self::map_extensions(prefix, row)?,
         })
@@ -490,7 +496,10 @@ impl IntoAdminApiObject for OAuthProvider {
                 name: self.name,
                 description: self.description,
                 client_id: self.client_id,
-                client_secret: self.client_secret.decrypt(&state.database).await?,
+                client_secret: match self.client_secret {
+                    Some(client_secret) => Some(client_secret.decrypt(&state.database).await?),
+                    None => None,
+                },
                 auth_url: self.auth_url,
                 token_url: self.token_url,
                 info_url: self.info_url,
@@ -508,6 +517,7 @@ impl IntoAdminApiObject for OAuthProvider {
                 link_viewable: self.link_viewable,
                 user_manageable: self.user_manageable,
                 basic_auth: self.basic_auth,
+                pkce: self.pkce,
                 created: self.created.and_utc(),
             },
             api_object,
@@ -606,13 +616,15 @@ pub struct CreateOAuthProviderOptions {
     pub user_manageable: bool,
     #[garde(skip)]
     pub basic_auth: bool,
+    #[garde(skip)]
+    pub pkce: bool,
 
     #[garde(length(chars, min = 3, max = 255))]
     #[schema(min_length = 3, max_length = 255)]
     pub client_id: compact_str::CompactString,
     #[garde(length(chars, min = 3, max = 255))]
     #[schema(min_length = 3, max_length = 255)]
-    pub client_secret: compact_str::CompactString,
+    pub client_secret: Option<compact_str::CompactString>,
 
     #[garde(length(chars, min = 3, max = 255))]
     #[schema(min_length = 3, max_length = 255)]
@@ -690,10 +702,15 @@ impl CreatableModel for OAuthProvider {
 
         Self::run_create_handlers(&mut options, &mut query_builder, state, transaction).await?;
 
-        let encrypted_client_secret =
-            EncryptedString::from_plaintext(options.client_secret.to_string(), &state.database)
-                .await
-                .map_err(|err| sqlx::Error::Encode(err.into()))?;
+        let encrypted_client_secret = if let Some(ref client_secret) = options.client_secret {
+            Some(
+                EncryptedString::from_plaintext(client_secret.to_string(), &state.database)
+                    .await
+                    .map_err(|err| sqlx::Error::Encode(err.into()))?,
+            )
+        } else {
+            None
+        };
 
         query_builder
             .set("name", &options.name)
@@ -716,7 +733,8 @@ impl CreatableModel for OAuthProvider {
             .set("login_bypass_two_factor", options.login_bypass_two_factor)
             .set("link_viewable", options.link_viewable)
             .set("user_manageable", options.user_manageable)
-            .set("basic_auth", options.basic_auth);
+            .set("basic_auth", options.basic_auth)
+            .set("pkce", options.pkce);
 
         let row = query_builder
             .returning(&Self::columns_sql(None))
@@ -755,13 +773,20 @@ pub struct UpdateOAuthProviderOptions {
     pub user_manageable: Option<bool>,
     #[garde(skip)]
     pub basic_auth: Option<bool>,
+    #[garde(skip)]
+    pub pkce: Option<bool>,
 
     #[garde(length(chars, min = 3, max = 255))]
     #[schema(min_length = 3, max_length = 255)]
     pub client_id: Option<compact_str::CompactString>,
     #[garde(length(chars, min = 3, max = 255))]
     #[schema(min_length = 3, max_length = 255)]
-    pub client_secret: Option<compact_str::CompactString>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "::serde_with::rust::double_option"
+    )]
+    pub client_secret: Option<Option<compact_str::CompactString>>,
 
     #[garde(length(chars, min = 3, max = 255))]
     #[schema(min_length = 3, max_length = 255)]
@@ -865,14 +890,14 @@ impl UpdatableModel for OAuthProvider {
         self.run_update_handlers(&mut options, &mut query_builder, state, transaction)
             .await?;
 
-        let encrypted_client_secret = if let Some(ref client_secret) = options.client_secret {
-            Some(
+        let encrypted_client_secret = match options.client_secret {
+            Some(Some(ref client_secret)) => Some(Some(
                 EncryptedString::from_plaintext(client_secret.to_string(), &state.database)
                     .await
                     .map_err(|err| sqlx::Error::Encode(err.into()))?,
-            )
-        } else {
-            None
+            )),
+            Some(None) => Some(None),
+            None => None,
         };
 
         query_builder
@@ -882,7 +907,7 @@ impl UpdatableModel for OAuthProvider {
                 options.description.as_ref().map(|d| d.as_ref()),
             )
             .set("client_id", options.client_id.as_ref())
-            .set("client_secret", encrypted_client_secret)
+            .set("client_secret", encrypted_client_secret.clone())
             .set("auth_url", options.auth_url.as_ref())
             .set("token_url", options.token_url.as_ref())
             .set("info_url", options.info_url.as_ref())
@@ -915,6 +940,7 @@ impl UpdatableModel for OAuthProvider {
             .set("link_viewable", options.link_viewable)
             .set("user_manageable", options.user_manageable)
             .set("basic_auth", options.basic_auth)
+            .set("pkce", options.pkce)
             .where_eq("uuid", self.uuid);
 
         query_builder.execute(&mut **transaction).await?;
@@ -943,13 +969,14 @@ impl UpdatableModel for OAuthProvider {
         if let Some(basic_auth) = options.basic_auth {
             self.basic_auth = basic_auth;
         }
+        if let Some(pkce) = options.pkce {
+            self.pkce = pkce;
+        }
         if let Some(client_id) = options.client_id {
             self.client_id = client_id;
         }
-        if let Some(client_secret) = options.client_secret {
-            self.client_secret = EncryptedString::from_plaintext(client_secret, &state.database)
-                .await
-                .map_err(|err| sqlx::Error::Encode(err.into()))?;
+        if let Some(client_secret) = encrypted_client_secret {
+            self.client_secret = client_secret;
         }
         if let Some(auth_url) = options.auth_url {
             self.auth_url = auth_url;
@@ -1079,7 +1106,8 @@ impl DuplicableModel for OAuthProvider {
             .set("login_bypass_two_factor", self.login_bypass_two_factor)
             .set("link_viewable", self.link_viewable)
             .set("user_manageable", self.user_manageable)
-            .set("basic_auth", self.basic_auth);
+            .set("basic_auth", self.basic_auth)
+            .set("pkce", self.pkce);
 
         let row = query_builder
             .returning(&Self::columns_sql(None))
@@ -1117,7 +1145,7 @@ pub struct AdminApiOAuthProvider {
     pub description: Option<compact_str::CompactString>,
 
     pub client_id: compact_str::CompactString,
-    pub client_secret: compact_str::CompactString,
+    pub client_secret: Option<compact_str::CompactString>,
     pub auth_url: String,
     pub token_url: String,
     pub info_url: String,
@@ -1137,6 +1165,7 @@ pub struct AdminApiOAuthProvider {
     pub link_viewable: bool,
     pub user_manageable: bool,
     pub basic_auth: bool,
+    pub pkce: bool,
 
     pub created: chrono::DateTime<chrono::Utc>,
 }

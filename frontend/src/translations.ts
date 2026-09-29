@@ -4601,12 +4601,16 @@ const baseTranslations = defineTranslations({
                 form: {
                   clientId: 'Client Id',
                   clientSecret: 'Client Secret',
+                  clientSecretDescription: 'Leave empty for public clients that authenticate with PKCE only.',
                   authUrl: 'Auth URL',
                   tokenUrl: 'Token URL',
                   infoUrl: 'Info URL',
                   basicAuth: 'Basic Auth',
                   basicAuthDescription:
                     'Uses HTTP Basic Authentication to transmit the client id and secret, not common anymore.',
+                  pkce: 'PKCE',
+                  pkceDescription:
+                    'Sends a Proof Key for Code Exchange (S256) with every login, supported by most modern providers.',
                   scopes: 'Scopes',
                   scopesDescription:
                     'The OAuth2 scopes to request, make sure to include scopes for email and profile info when needed.',

@@ -89,7 +89,7 @@ export default function OAuthProviderCreateOrUpdate({
     addToast(t('pages.admin.oAuthProviders.tabs.general.page.toast.exported', {}), 'success');
   };
 
-  const { fieldsTop, fieldsMain } = useOAuthProviderFormFields(!!contextOAuthProvider);
+  const { fieldsTop, fieldsMain } = useOAuthProviderFormFields();
 
   return (
     <AdminContentContainer
