@@ -617,6 +617,7 @@ pub struct CreateOAuthProviderOptions {
     #[garde(skip)]
     pub basic_auth: bool,
     #[garde(skip)]
+    #[serde(default)]
     pub pkce: bool,
 
     #[garde(length(chars, min = 3, max = 255))]
@@ -676,6 +677,7 @@ pub struct CreateOAuthProviderOptions {
     #[schema(min_length = 1, max_length = 255)]
     pub avatar_url_template: Option<String>,
     #[garde(skip)]
+    #[serde(default)]
     pub avatar_overwrite: bool,
 }
 

@@ -45,6 +45,9 @@ function OAuthProvidersContainer() {
       // Exports and presets from before the login_bypass_two_factor rename only carry the old key.
       login_bypass_two_factor: raw.login_bypass_two_factor ?? raw.login_bypass_2fa,
       client_id: 'example',
+      client_secret: raw.client_secret ?? null,
+      avatar_url_template: raw.avatar_url_template ?? null,
+      avatar_overwrite: raw.avatar_overwrite ?? false,
     }),
     [],
   );
