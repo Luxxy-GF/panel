@@ -198,6 +198,18 @@ fn handle_panic(err: Box<dyn std::any::Any + Send + 'static>) -> Response<Body> 
         .into_response()
 }
 
+fn etag_matches(if_none_match: &str, etag: &str) -> bool {
+    fn opaque(tag: &str) -> &str {
+        tag.trim().trim_start_matches("W/").trim_matches('"')
+    }
+
+    let etag = opaque(etag);
+
+    if_none_match
+        .split(',')
+        .any(|candidate| candidate.trim() == "*" || opaque(candidate) == etag)
+}
+
 pub async fn handle_postprocessing(
     state: GetState,
     req: Request,
@@ -284,10 +296,11 @@ pub async fn handle_postprocessing(
         hash.update(&body_bytes);
         let hash = hex::encode(hash.finalize());
 
-        parts.headers.insert("ETag", hash.parse().unwrap());
+        let etag = format!("\"{hash}\"");
+        parts.headers.insert("ETag", etag.parse().unwrap());
 
         (
-            Some(hash),
+            Some(etag),
             Response::from_parts(parts, Body::from(body_bytes)),
         )
     } else {
@@ -296,7 +309,7 @@ pub async fn handle_postprocessing(
 
     // we cant directly compare because if both are None, It'd return NOT_MODIFIED
     if let Some(etag) = etag
-        && if_none_match == Some(etag)
+        && if_none_match.is_some_and(|if_none_match| etag_matches(&if_none_match, &etag))
     {
         let mut cached_response = Response::builder()
             .status(StatusCode::NOT_MODIFIED)
@@ -1056,6 +1069,15 @@ pub async fn handle_startup() -> Result<
                             })
                         });
 
+                    let cache_control = if asset
+                        .as_ref()
+                        .is_some_and(|asset| asset.path.starts_with("assets/"))
+                    {
+                        "public, max-age=31536000, immutable"
+                    } else {
+                        "no-cache"
+                    };
+
                     let (body, content_type, content_encoding) = match asset {
                         None => {
                             let html = state.settings.get_rendered_index_html();
@@ -1095,6 +1117,7 @@ pub async fn handle_startup() -> Result<
                     .with_header("Content-Type", content_type)
                     .with_optional_header("Content-Encoding", content_encoding)
                     .with_header("Vary", "Accept-Encoding")
+                    .with_header("Cache-Control", cache_control)
                     .with_optional_header("Content-Security-Policy", content_security_policy)
                     .with_header("X-Content-Type-Options", "nosniff")
                     .with_header("X-Frame-Options", "SAMEORIGIN")

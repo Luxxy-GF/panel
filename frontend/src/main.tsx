@@ -24,21 +24,27 @@ for (const [path, module] of Object.entries({ ...extensionModulesTs, ...extensio
   }
 }
 
-window.addEventListener('vite:preloadError', (event) => {
-  event.preventDefault();
+const CHUNK_RELOAD_ATTEMPTS_KEY = 'chunkReloadAttempts';
+const MAX_CHUNK_RELOAD_ATTEMPTS = 3;
+let chunkReloadScheduled = false;
 
-  const lastReload = localStorage.getItem('lastReload') || '0';
-  const now = Date.now();
+window.addEventListener('vite:preloadError', () => {
+  const attempts = parseInt(sessionStorage.getItem(CHUNK_RELOAD_ATTEMPTS_KEY) || '0');
+  if (chunkReloadScheduled || attempts >= MAX_CHUNK_RELOAD_ATTEMPTS) return;
 
-  if (now - parseInt(lastReload) < 5000) {
-    document.body.innerHTML =
-      'Failed to load application: Preload error occurred multiple times. Please check the console for more details.';
-    throw new Error('Preload error occurred multiple times');
-  }
+  chunkReloadScheduled = true;
+  sessionStorage.setItem(CHUNK_RELOAD_ATTEMPTS_KEY, (attempts + 1).toString());
 
-  localStorage.setItem('lastReload', now.toString());
-  window.location.reload();
+  const reload = () => window.location.reload();
+  setTimeout(
+    () => (navigator.onLine ? reload() : window.addEventListener('online', reload, { once: true })),
+    1000 * 2 ** attempts,
+  );
 });
+
+setTimeout(() => {
+  if (!chunkReloadScheduled) sessionStorage.removeItem(CHUNK_RELOAD_ATTEMPTS_KEY);
+}, 30_000);
 
 const root = document.getElementById('root');
 
