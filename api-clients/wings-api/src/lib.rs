@@ -170,6 +170,29 @@ nestify::nest! {
     }
 }
 
+nestify::nest! {
+    #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct DirectorySizes {
+        #[schema(inline)]
+        pub name: compact_str::CompactString,
+        #[schema(inline)]
+        pub size: u64,
+        #[schema(inline)]
+        pub size_physical: u64,
+        #[schema(inline)]
+        pub files_size: u64,
+        #[schema(inline)]
+        pub inaccessible_size: u64,
+        #[schema(inline)]
+        pub other_size: u64,
+        #[schema(inline)]
+        pub other_count: u64,
+        #[schema(inline)]
+        pub truncated: bool,
+        #[schema(no_recursion)]
+        pub children: Vec<DirectorySizes>,
+    }
+}
+
 #[derive(Debug, ToSchema, Deserialize, Serialize, Clone, Copy)]
 pub enum DiskLimiterMode {
     #[serde(rename = "none")]
@@ -1776,6 +1799,31 @@ pub mod servers_server_files_delete {
         pub type Response417 = ApiError;
 
         pub type Response = Response200;
+    }
+}
+pub mod servers_server_files_directory_sizes {
+    use super::*;
+
+    pub mod get {
+        use super::*;
+
+        pub type Response200 = DirectorySizes;
+
+        pub type Response404 = ApiError;
+
+        pub type Response417 = ApiError;
+
+        pub type Response = Response200;
+
+        #[derive(Debug, Clone, Default)]
+        #[allow(clippy::manual_non_exhaustive)]
+        pub struct Query {
+            pub directory: Option<compact_str::CompactString>,
+            pub depth: Option<u64>,
+            pub ignored: Option<Vec<compact_str::CompactString>>,
+            #[doc(hidden)]
+            pub __priv: (),
+        }
     }
 }
 pub mod servers_server_files_fingerprints {

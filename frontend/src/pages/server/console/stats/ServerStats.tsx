@@ -3,6 +3,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useEffect, useMemo, useRef } from 'react';
 import ChartBlock from '@/elements/charts/ChartBlock.tsx';
 import ChartLegend from '@/elements/charts/ChartLegend.tsx';
+import ChartSyncGroup from '@/elements/charts/ChartSyncGroup.tsx';
 import StreamChart from '@/elements/charts/StreamChart.tsx';
 import ExtensionSlot from '@/elements/ExtensionSlot.tsx';
 import { formatBytes, formatBytesRate, formatPercent, useStreamChart } from '@/lib/chart.ts';
@@ -27,12 +28,14 @@ export default function ServerStats() {
     series: useMemo(() => [t('common.stat.cpuLoad', {})], [t]),
     format: formatPercent,
     min: 10,
+    limit: server.limits.cpu > 0 ? server.limits.cpu : null,
   });
   const memory = useStreamChart({
     series: useMemo(() => [t('common.stat.memoryLoad', {})], [t]),
     format: formatBytes,
     scale: 'binary',
     min: mbToBytes(64),
+    limit: server.limits.memory > 0 ? mbToBytes(server.limits.memory) : null,
   });
   const network = useStreamChart({
     series: useMemo(() => [t('common.stat.outbound', {}), t('common.stat.inbound', {})], [t]),
@@ -88,38 +91,40 @@ export default function ServerStats() {
   const overlayLabel = offline ? t('pages.server.console.stats.offline', {}) : undefined;
 
   return (
-    <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-      <ChartBlock
-        icon={<FontAwesomeIcon icon={faMicrochip} />}
-        title={t('common.stat.cpuLoad', {})}
-        value={cpu.value}
-        overlayIcon={overlayIcon}
-        overlayLabel={overlayLabel}
-      >
-        <StreamChart {...cpu.props} />
-      </ChartBlock>
-      <ChartBlock
-        icon={<FontAwesomeIcon icon={faMemory} />}
-        title={t('common.stat.memoryLoad', {})}
-        value={memory.value}
-        overlayIcon={overlayIcon}
-        overlayLabel={overlayLabel}
-      >
-        <StreamChart {...memory.props} />
-      </ChartBlock>
-      <ChartBlock
-        icon={<FontAwesomeIcon icon={faCloudDownload} />}
-        title={t('common.stat.network', {})}
-        legend={<ChartLegend {...network.legend} />}
-        overlayIcon={overlayIcon}
-        overlayLabel={overlayLabel}
-      >
-        <StreamChart {...network.props} />
-      </ChartBlock>
-      <ExtensionSlot
-        components={window.extensionContext.extensionRegistry.pages.server.console.statBlocks}
-        name='console-stat-block'
-      />
-    </div>
+    <ChartSyncGroup>
+      <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
+        <ChartBlock
+          icon={<FontAwesomeIcon icon={faMicrochip} />}
+          title={t('common.stat.cpuLoad', {})}
+          value={cpu.value}
+          overlayIcon={overlayIcon}
+          overlayLabel={overlayLabel}
+        >
+          <StreamChart {...cpu.props} />
+        </ChartBlock>
+        <ChartBlock
+          icon={<FontAwesomeIcon icon={faMemory} />}
+          title={t('common.stat.memoryLoad', {})}
+          value={memory.value}
+          overlayIcon={overlayIcon}
+          overlayLabel={overlayLabel}
+        >
+          <StreamChart {...memory.props} />
+        </ChartBlock>
+        <ChartBlock
+          icon={<FontAwesomeIcon icon={faCloudDownload} />}
+          title={t('common.stat.network', {})}
+          legend={<ChartLegend {...network.legend} />}
+          overlayIcon={overlayIcon}
+          overlayLabel={overlayLabel}
+        >
+          <StreamChart {...network.props} />
+        </ChartBlock>
+        <ExtensionSlot
+          components={window.extensionContext.extensionRegistry.pages.server.console.statBlocks}
+          name='console-stat-block'
+        />
+      </div>
+    </ChartSyncGroup>
   );
 }

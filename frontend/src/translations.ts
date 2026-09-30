@@ -424,6 +424,7 @@ const baseTranslations = defineTranslations({
         outbound: 'Outbound',
         uptime: 'Uptime',
         resources: 'Resources',
+        limit: 'Limit {limit}',
       },
       badge: {
         active: 'Active',
@@ -5805,6 +5806,11 @@ const baseTranslations = defineTranslations({
             largestDirectories: {
               title: 'Largest Directories',
               empty: 'No directories found.',
+              files: 'Files in this folder',
+              smallerFolders: '{count} smaller folders',
+              inaccessible: 'Inaccessible',
+              openFolder: 'Open folder',
+              noSubdirectories: 'This folder uses {size} and has no large subdirectories of its own.',
             },
             searchFiles: {
               title: 'Search Files',

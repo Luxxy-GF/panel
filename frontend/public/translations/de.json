@@ -607,7 +607,8 @@
         "inbound": "Eingehend",
         "outbound": "Ausgehend",
         "uptime": "Laufzeit",
-        "resources": "Ressourcen"
+        "resources": "Ressourcen",
+        "limit": "Limit {limit}"
       },
       "badge": {
         "active": "Aktiv",
@@ -5779,7 +5780,12 @@
             },
             "largestDirectories": {
               "title": "Größte Verzeichnisse",
-              "empty": "Keine Verzeichnisse gefunden."
+              "empty": "Keine Verzeichnisse gefunden.",
+              "files": "Dateien in diesem Ordner",
+              "smallerFolders": "{count} kleinere Ordner",
+              "inaccessible": "Nicht zugänglich",
+              "openFolder": "Ordner öffnen",
+              "noSubdirectories": "Dieser Ordner belegt {size} und hat keine eigenen großen Unterverzeichnisse."
             },
             "searchFiles": {
               "title": "Dateien suchen",
