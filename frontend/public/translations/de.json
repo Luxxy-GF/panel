@@ -2633,6 +2633,7 @@
           "unknownExtension": "Unbekannte Erweiterung",
           "alert": {
             "noExtensions": "Keine Erweiterungen installiert.",
+            "managementDisabled": "Die Erweiterungsverwaltung wurde auf diesem Panel deaktiviert.",
             "heavyImageMissing": "Du scheinst nicht das Heavy-Image zu verwenden, das zum Installieren von Erweiterungen benötigt wird. Siehe [hier]({docsUrl}), wie du dazu wechselst.",
             "supervisorUnreachable": {
               "title": "Der Erweiterungs-Supervisor antwortet nicht",

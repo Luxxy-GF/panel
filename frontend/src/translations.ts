@@ -2531,6 +2531,7 @@ const baseTranslations = defineTranslations({
           unknownExtension: 'Unknown Extension',
           alert: {
             noExtensions: 'No extensions installed.',
+            managementDisabled: 'Extension management has been disabled on this panel.',
             heavyImageMissing:
               "You don't seem to be using the heavy image required to install extensions, see [here]({docsUrl}) on how to switch to it.",
             supervisorUnreachable: {
