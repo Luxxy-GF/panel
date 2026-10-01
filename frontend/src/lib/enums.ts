@@ -163,6 +163,13 @@ export const databaseAgentTypeDefaultPortMapping: Record<z.infer<typeof database
   redis: 6379,
 };
 
+export const databaseAgentTypeDumpExtensionMapping: Record<z.infer<typeof databaseAgentType>, string> = {
+  postgres: '.sql',
+  mariadb: '.sql',
+  mongodb: '.archive',
+  redis: '.rdb',
+};
+
 export const announcementTypeLabelMapping: Record<z.infer<typeof announcementType>, () => string> = {
   info: () => getTranslations().t('pages.admin.announcements.enum.announcementType.info', {}),
   success: () => getTranslations().t('pages.admin.announcements.enum.announcementType.success', {}),
