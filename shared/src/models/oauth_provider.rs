@@ -498,8 +498,18 @@ impl OAuthProvider {
         }
         url.set_fragment(None);
 
-        let response = match crate::net::outbound_client(&state.env)
-            .get(url.clone())
+        let request =
+            match crate::net::outbound_request(&state.env, reqwest::Method::GET, url.clone()) {
+                Ok(request) => request,
+                Err(err) => {
+                    return Err(crate::response::DisplayError::new(format!(
+                        "failed to fetch {url}: {err:#}"
+                    ))
+                    .into());
+                }
+            };
+
+        let response = match request
             .header(reqwest::header::ACCEPT, "application/json")
             .send()
             .await
