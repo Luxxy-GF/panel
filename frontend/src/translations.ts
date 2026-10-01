@@ -5271,6 +5271,7 @@ const baseTranslations = defineTranslations({
           input: {
             placeholder: 'Type a command...',
             ariaLabel: 'Console command input.',
+            prefixPlaceholder: 'Prefix, e.g. "say "',
           },
           toast: {
             installCancelled: 'Server install cancelled.',
@@ -5315,6 +5316,7 @@ const baseTranslations = defineTranslations({
             increaseFontSize: 'Increase Font Size',
             copySelection: 'Copy Selection',
             popout: 'Open in Separate Window',
+            commandPrefix: 'Command Prefix',
           },
           quickAction: {
             search: 'Search Console',

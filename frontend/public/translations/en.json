@@ -5280,7 +5280,8 @@
           "title": "Console",
           "input": {
             "placeholder": "Type a command...",
-            "ariaLabel": "Console command input."
+            "ariaLabel": "Console command input.",
+            "prefixPlaceholder": "Prefix, e.g. \"say \""
           },
           "toast": {
             "installCancelled": "Server install cancelled.",
@@ -5321,7 +5322,8 @@
             "decreaseFontSize": "Decrease Font Size",
             "increaseFontSize": "Increase Font Size",
             "copySelection": "Copy Selection",
-            "popout": "Open in Separate Window"
+            "popout": "Open in Separate Window",
+            "commandPrefix": "Command Prefix"
           },
           "quickAction": {
             "search": "Search Console",

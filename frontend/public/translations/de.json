@@ -5254,7 +5254,8 @@
           "title": "Konsole",
           "input": {
             "placeholder": "Gib einen Befehl ein...",
-            "ariaLabel": "Konsolenbefehl Eingabe."
+            "ariaLabel": "Konsolenbefehl Eingabe.",
+            "prefixPlaceholder": "Präfix, z. B. \"say \""
           },
           "toast": {
             "installCancelled": "Server-Installation abgebrochen.",
@@ -5295,7 +5296,8 @@
             "decreaseFontSize": "Schriftgröße verringern",
             "increaseFontSize": "Schriftgröße erhöhen",
             "copySelection": "Auswahl kopieren",
-            "popout": "In separatem Fenster öffnen"
+            "popout": "In separatem Fenster öffnen",
+            "commandPrefix": "Befehlspräfix"
           },
           "quickAction": {
             "search": "Konsole durchsuchen",
