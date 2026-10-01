@@ -1,4 +1,4 @@
-import { faExternalLink } from '@fortawesome/free-solid-svg-icons';
+import { faExternalLink, faLink } from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useState } from 'react';
 import { z } from 'zod';
@@ -30,6 +30,7 @@ import { useResourceForm } from '@/plugins/resource/useResourceForm.ts';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import { useGlobalStore } from '@/stores/global.ts';
+import OAuthProviderDiscoverModal from './modals/OAuthProviderDiscoverModal.tsx';
 import {
   oauthProviderEmptyFormValues,
   oauthProviderToFormValues,
@@ -48,7 +49,7 @@ export default function OAuthProviderCreateOrUpdate({
   const settings = useGlobalStore((state) => state.settings);
 
   const [isValid, setIsValid] = useState(false);
-  const [openModal, setOpenModal] = useState<'delete' | 'duplicate' | null>(null);
+  const [openModal, setOpenModal] = useState<'delete' | 'duplicate' | 'discover' | null>(null);
 
   const form = useFormEngine<OAuthFormValues>('admin.oAuthProviders.createOrUpdate', {
     schema: adminOAuthProviderUpdateSchema.unwrap(),
@@ -114,6 +115,16 @@ export default function OAuthProviderCreateOrUpdate({
         }).md()}
       </ConfirmationModal>
 
+      <OAuthProviderDiscoverModal
+        opened={openModal === 'discover'}
+        onClose={() => setOpenModal(null)}
+        onDiscovered={(provider) => {
+          form.setValues(provider);
+          setIsValid(form.isValid());
+          addToast(t('pages.admin.oAuthProviders.tabs.general.page.toast.discovered', {}), 'success');
+        }}
+      />
+
       {contextOAuthProvider && (
         <ResourceDuplicateModal
           resourceName={t('pages.admin.oAuthProviders.resourceName', {})}
@@ -156,6 +167,16 @@ export default function OAuthProviderCreateOrUpdate({
               </Button>
             )}
             {contextOAuthProvider && <ResourceExportMenu loading={loading} onExport={doExport} />}
+            {!contextOAuthProvider && (
+              <Button
+                variant='default'
+                leftSection={<FontAwesomeIcon icon={faLink} />}
+                onClick={() => setOpenModal('discover')}
+                loading={loading}
+              >
+                {t('pages.admin.oAuthProviders.tabs.general.page.button.discover', {})}
+              </Button>
+            )}
           </AdminCan>
           {contextOAuthProvider && (
             <AdminCan action='oauth-providers.create'>

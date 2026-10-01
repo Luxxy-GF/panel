@@ -4677,12 +4677,21 @@
                   "userManageable": "Link Manageable by User",
                   "userManageableDescription": "Allows the user to connect and disconnect with this provider."
                 },
+                "button": {
+                  "discover": "Import from OpenID Discovery"
+                },
                 "toast": {
-                  "exported": "OAuth Provider exported."
+                  "exported": "OAuth Provider exported.",
+                  "discovered": "Provider settings imported. Enter the client id and secret to finish."
                 },
                 "modal": {
                   "delete": {
                     "title": "Confirm OAuth Provider Deletion"
+                  },
+                  "discover": {
+                    "title": "Import from OpenID Discovery",
+                    "url": "Issuer URL",
+                    "urlDescription": "The issuer URL or its full /.well-known/openid-configuration URL. Providers on a private network are blocked unless APP_BLOCKED_CIDRS allows them."
                   }
                 }
               }

@@ -3,6 +3,7 @@ use crate::{
     models::{InsertQueryBuilder, UpdateQueryBuilder},
     prelude::*,
 };
+use futures_util::TryStreamExt;
 use garde::Validate;
 use rand::distr::SampleString;
 use serde::{Deserialize, Serialize};
@@ -214,6 +215,7 @@ impl BaseModel for OAuthProvider {
 
 impl OAuthProvider {
     const MAX_AVATAR_URL_LENGTH: usize = 2048;
+    const MAX_DISCOVERY_SIZE: usize = 64 * 1024;
 
     pub async fn all_with_pagination(
         database: &crate::database::Database,
@@ -476,6 +478,162 @@ impl OAuthProvider {
 
         Ok(Some(url.into()))
     }
+
+    /// Fetches an OpenID Connect discovery document and derives provider settings from it.
+    ///
+    /// `url` may be either the issuer or the full `/.well-known/openid-configuration` url. Claim
+    /// paths are only filled in when the provider advertises the claim, as a configured path that
+    /// is missing from the userinfo response fails the login.
+    pub async fn discover(
+        state: &crate::State,
+        url: &reqwest::Url,
+    ) -> Result<DiscoveredOAuthProvider, anyhow::Error> {
+        const WELL_KNOWN_PATH: &str = "/.well-known/openid-configuration";
+
+        let mut url = url.clone();
+        if !url.path().ends_with(WELL_KNOWN_PATH) {
+            let path = format!("{}{WELL_KNOWN_PATH}", url.path().trim_end_matches('/'));
+            url.set_path(&path);
+            url.set_query(None);
+        }
+        url.set_fragment(None);
+
+        let response = match crate::net::outbound_client(&state.env)
+            .get(url.clone())
+            .header(reqwest::header::ACCEPT, "application/json")
+            .send()
+            .await
+        {
+            Ok(response) => response,
+            Err(err) => {
+                return Err(crate::response::DisplayError::new(format!(
+                    "failed to fetch {url}: {:#}",
+                    anyhow::Error::from(err)
+                ))
+                .into());
+            }
+        };
+
+        if !response.status().is_success() {
+            return Err(crate::response::DisplayError::new(format!(
+                "{url} responded with status {}",
+                response.status()
+            ))
+            .into());
+        }
+
+        let mut content = Vec::new();
+        let mut stream = response.bytes_stream();
+
+        while let Some(chunk) = stream.try_next().await? {
+            if content.len() + chunk.len() > Self::MAX_DISCOVERY_SIZE {
+                return Err(crate::response::DisplayError::new(
+                    "openid configuration is too large",
+                )
+                .into());
+            }
+
+            content.extend_from_slice(&chunk);
+        }
+
+        let Ok(configuration) = serde_json::from_slice::<OpenIdConfiguration>(&content) else {
+            return Err(crate::response::DisplayError::new(format!(
+                "{url} did not return a valid openid configuration"
+            ))
+            .into());
+        };
+
+        let Some(info_url) = configuration.userinfo_endpoint else {
+            return Err(crate::response::DisplayError::new(
+                "openid configuration does not include a userinfo endpoint",
+            )
+            .into());
+        };
+
+        let lists = |list: &Option<Vec<String>>, item: &str| {
+            list.as_ref()
+                .is_none_or(|list| list.iter().any(|entry| entry == item))
+        };
+        let scope_email = lists(&configuration.scopes_supported, "email");
+        let scope_profile = lists(&configuration.scopes_supported, "profile");
+        let profile_claim =
+            |claim: &str| scope_profile && lists(&configuration.claims_supported, claim);
+
+        let graph_userinfo = reqwest::Url::parse(&info_url)
+            .is_ok_and(|info_url| info_url.host_str() == Some("graph.microsoft.com"));
+
+        let mut scopes = vec![compact_str::CompactString::const_new("openid")];
+        if scope_email {
+            scopes.push("email".into());
+        }
+        if scope_profile {
+            scopes.push("profile".into());
+        }
+
+        let name = reqwest::Url::parse(&configuration.issuer)
+            .ok()
+            .and_then(|issuer| issuer.host_str().map(Into::into))
+            .or_else(|| url.host_str().map(Into::into))
+            .unwrap_or_else(|| configuration.issuer.as_str().into());
+
+        Ok(DiscoveredOAuthProvider {
+            name,
+            auth_url: configuration.authorization_endpoint,
+            token_url: configuration.token_endpoint,
+            info_url,
+            scopes,
+            identifier_path: "$.sub".into(),
+            email_path: (scope_email && lists(&configuration.claims_supported, "email"))
+                .then(|| "$.email".into()),
+            username_path: (profile_claim("preferred_username") && !graph_userinfo)
+                .then(|| "$.preferred_username".into()),
+            name_first_path: profile_claim("given_name").then(|| "$.given_name".into()),
+            name_last_path: profile_claim("family_name").then(|| "$.family_name".into()),
+            avatar_url_template: (profile_claim("picture") && !graph_userinfo)
+                .then(|| "{$.picture}".into()),
+            basic_auth: configuration
+                .token_endpoint_auth_methods_supported
+                .is_some_and(|methods| {
+                    !methods.iter().any(|method| method == "client_secret_post")
+                        && methods.iter().any(|method| method == "client_secret_basic")
+                }),
+            pkce: configuration
+                .code_challenge_methods_supported
+                .is_some_and(|methods| methods.iter().any(|method| method == "S256")),
+        })
+    }
+}
+
+#[derive(Deserialize)]
+struct OpenIdConfiguration {
+    issuer: String,
+    authorization_endpoint: String,
+    token_endpoint: String,
+    userinfo_endpoint: Option<String>,
+    scopes_supported: Option<Vec<String>>,
+    claims_supported: Option<Vec<String>>,
+    code_challenge_methods_supported: Option<Vec<String>>,
+    token_endpoint_auth_methods_supported: Option<Vec<String>>,
+}
+
+#[derive(ToSchema, Serialize)]
+pub struct DiscoveredOAuthProvider {
+    pub name: compact_str::CompactString,
+
+    pub auth_url: String,
+    pub token_url: String,
+    pub info_url: String,
+    pub scopes: Vec<compact_str::CompactString>,
+
+    pub identifier_path: String,
+    pub email_path: Option<String>,
+    pub username_path: Option<String>,
+    pub name_first_path: Option<String>,
+    pub name_last_path: Option<String>,
+    pub avatar_url_template: Option<String>,
+
+    pub basic_auth: bool,
+    pub pkce: bool,
 }
 
 #[async_trait::async_trait]

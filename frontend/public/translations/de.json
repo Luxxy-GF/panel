@@ -4651,12 +4651,21 @@
                   "userManageable": "Verknüpfung vom Benutzer verwaltbar",
                   "userManageableDescription": "Erlaubt dem Benutzer, sich mit diesem Anbieter zu verbinden und die Verbindung zu trennen."
                 },
+                "button": {
+                  "discover": "Aus OpenID Discovery importieren"
+                },
                 "toast": {
-                  "exported": "OAuth-Anbieter exportiert."
+                  "exported": "OAuth-Anbieter exportiert.",
+                  "discovered": "Anbieter-Einstellungen importiert. Gib Client-ID und Secret ein, um abzuschließen."
                 },
                 "modal": {
                   "delete": {
                     "title": "OAuth-Anbieter-Löschung bestätigen"
+                  },
+                  "discover": {
+                    "title": "Aus OpenID Discovery importieren",
+                    "url": "Issuer-URL",
+                    "urlDescription": "Die Issuer-URL oder ihre vollständige /.well-known/openid-configuration-URL. Anbieter in einem privaten Netzwerk werden blockiert, sofern APP_BLOCKED_CIDRS sie nicht erlaubt."
                   }
                 }
               }

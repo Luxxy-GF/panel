@@ -1114,14 +1114,14 @@ pub async fn handle_startup() -> Result<
                     };
 
                     return ApiResponse::new(body)
-                    .with_header("Content-Type", content_type)
-                    .with_optional_header("Content-Encoding", content_encoding)
-                    .with_header("Vary", "Accept-Encoding")
-                    .with_header("Cache-Control", cache_control)
-                    .with_optional_header("Content-Security-Policy", content_security_policy)
-                    .with_header("X-Content-Type-Options", "nosniff")
-                    .with_header("X-Frame-Options", "SAMEORIGIN")
-                    .ok();
+                        .with_header("Content-Type", content_type)
+                        .with_optional_header("Content-Encoding", content_encoding)
+                        .with_header("Vary", "Accept-Encoding")
+                        .with_header("Cache-Control", cache_control)
+                        .with_optional_header("Content-Security-Policy", content_security_policy)
+                        .with_header("X-Content-Type-Options", "nosniff")
+                        .with_header("X-Frame-Options", "SAMEORIGIN")
+                        .ok();
                 }
 
                 ApiResponse::error("route not found")

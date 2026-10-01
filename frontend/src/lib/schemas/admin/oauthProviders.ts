@@ -36,6 +36,22 @@ export const adminOAuthProviderUpdateSchema = z.lazy(() =>
   }),
 );
 
+export const adminOAuthProviderDiscoverySchema = adminOAuthProviderSchema.pick({
+  name: true,
+  authUrl: true,
+  tokenUrl: true,
+  infoUrl: true,
+  scopes: true,
+  identifierPath: true,
+  emailPath: true,
+  usernamePath: true,
+  nameFirstPath: true,
+  nameLastPath: true,
+  avatarUrlTemplate: true,
+  basicAuth: true,
+  pkce: true,
+});
+
 /**
  * API field names holding provider credentials: redacted when exporting a provider. Only
  * `client_id` is seeded with a placeholder on import, the secret is optional for public clients.
