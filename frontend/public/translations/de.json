@@ -1916,7 +1916,8 @@
             "copyUuid": "UUID kopieren"
           },
           "tooltip": {
-            "limitReached": "Du bist auf {max} API-Schlüssel limitiert."
+            "limitReached": "Du bist auf {max} API-Schlüssel limitiert.",
+            "keyStartOnly": "Nur der Anfang des Schlüssels wird angezeigt, der vollständige Schlüssel ist nur einmal nach der (Neu-)Erstellung sichtbar."
           },
           "table": {
             "columns": {
@@ -1940,6 +1941,12 @@
               "title": "API-Schlüssel aktualisieren",
               "toast": {
                 "updated": "API-Schlüssel aktualisiert."
+              }
+            },
+            "duplicateApiKey": {
+              "title": "API-Schlüssel duplizieren",
+              "toast": {
+                "duplicated": "API-Schlüssel dupliziert."
               }
             },
             "recreateApiKey": {
@@ -6636,6 +6643,9 @@
             }
           },
           "steps": {
+            "tooltip": {
+              "limitReached": "Dieser Zeitplan ist auf {max} Schritte limitiert."
+            },
             "empty": {
               "title": "Keine Schritte konfiguriert",
               "description": "Dieser Zeitplan hat noch keine Schritte. Füge einige Aktionen hinzu, um loszulegen."

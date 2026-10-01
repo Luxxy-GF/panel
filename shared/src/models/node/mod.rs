@@ -1365,6 +1365,7 @@ pub struct DuplicateNodeOptions {
 #[async_trait::async_trait]
 impl DuplicableModel for Node {
     type DuplicateOptions<'a> = DuplicateNodeOptions;
+    type DuplicateResult = Self;
 
     fn get_duplicate_handlers() -> &'static LazyLock<DuplicateHandlerList<Self>> {
         static DUPLICATE_LISTENERS: LazyLock<DuplicateHandlerList<Node>> =

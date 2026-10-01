@@ -1773,6 +1773,7 @@ const baseTranslations = defineTranslations({
           },
           tooltip: {
             limitReached: 'You are limited to {max} api keys.',
+            keyStartOnly: 'Only the start of the key is shown, the full key is only visible once after (re)creation.',
           },
           table: {
             columns: {
@@ -1796,6 +1797,12 @@ const baseTranslations = defineTranslations({
               title: 'Update API Key',
               toast: {
                 updated: 'API key updated.',
+              },
+            },
+            duplicateApiKey: {
+              title: 'Duplicate API Key',
+              toast: {
+                duplicated: 'API key duplicated.',
               },
             },
             recreateApiKey: {
@@ -6689,6 +6696,9 @@ const baseTranslations = defineTranslations({
             },
           },
           steps: {
+            tooltip: {
+              limitReached: 'This schedule is limited to {max} steps.',
+            },
             empty: {
               title: 'No Steps Configured',
               description: "This schedule doesn't have any steps yet. Add some actions to get started.",

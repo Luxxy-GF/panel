@@ -247,6 +247,7 @@ export default function ServerSchedules() {
               {(innerRef: Ref<HTMLElement>) => (
                 <ScheduleRow
                   schedule={schedule}
+                  atLimit={atLimit}
                   ref={innerRef as Ref<HTMLTableRowElement>}
                   isSelected={selectedSchedules.has(schedule.uuid)}
                   onSelectionChange={canSelect ? (selected) => toggleSchedule(schedule, selected) : undefined}

@@ -82,7 +82,7 @@ mod post {
         ApiError, GetState,
         models::{
             CreatableModel, IntoApiObject,
-            user::{AuthMethod, GetAuthMethod, GetPermissionManager, GetUser},
+            user::{GetPermissionManager, GetUser},
             user_activity::GetUserActivityLogger,
             user_api_key::{CreateUserApiKeyOptions, UserApiKey},
         },
@@ -134,27 +134,17 @@ mod post {
     pub async fn route(
         state: GetState,
         permissions: GetPermissionManager,
-        auth: GetAuthMethod,
         user: GetUser,
         activity_logger: GetUserActivityLogger,
         shared::Payload(data): shared::Payload<Payload>,
     ) -> ApiResponseResult {
         permissions.has_user_permission("api-keys.create")?;
 
-        if let AuthMethod::ApiKey(api_key) = &**auth
-            && (!data
-                .user_permissions
-                .iter()
-                .all(|p| api_key.user_permissions.contains(p))
-                || !data
-                    .admin_permissions
-                    .iter()
-                    .all(|p| api_key.admin_permissions.contains(p))
-                || !data
-                    .server_permissions
-                    .iter()
-                    .all(|p| api_key.server_permissions.contains(p)))
-        {
+        if !permissions.scope().covers(
+            &data.user_permissions,
+            &data.admin_permissions,
+            &data.server_permissions,
+        ) {
             return ApiResponse::error("permissions: more permissions than self")
                 .with_status(StatusCode::BAD_REQUEST)
                 .ok();
