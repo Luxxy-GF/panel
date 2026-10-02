@@ -152,7 +152,11 @@ mod post {
 
         let api_keys_lock = state
             .cache
-            .lock(format!("users::{}::api_keys", user.uuid), Some(30), Some(5))
+            .lock(
+                format!("users::{}::api_keys", user.uuid),
+                Some(30),
+                Some(5000),
+            )
             .await?;
 
         let api_keys = UserApiKey::count_by_user_uuid(&state.database, user.uuid).await?;
