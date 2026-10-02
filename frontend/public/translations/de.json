@@ -391,6 +391,10 @@
         "duplicate": {
           "title": "{resource} duplizieren"
         },
+        "unsavedChanges": {
+          "title": "Ungespeicherte Änderungen",
+          "content": "Du hast ungespeicherte Änderungen. Bist du sicher, dass du diese Seite verlassen möchtest? Wenn du die Seite verlässt, gehen deine Änderungen verloren."
+        },
         "delete": {
           "content": "Bist du sicher, dass du **{name}** löschen möchtest?"
         },

@@ -8,6 +8,7 @@ import Group from '@/elements/layout/Group.tsx';
 import ConfirmationModal from '@/elements/modals/ConfirmationModal.tsx';
 import { mappingToSelectData, storageDriverTypeLabelMapping } from '@/lib/enums.ts';
 import { adminSettingsStorageSchema } from '@/lib/schemas/admin/settings.ts';
+import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import { useAdminStore } from '@/stores/admin.tsx';
@@ -29,6 +30,7 @@ export default function StorageContainer() {
   });
 
   useHydrateForm(form, storageDriver, storageToFormValues);
+  useFormDraft(form, 'storage');
 
   const { loading, submit, confirmOpened, closeConfirm, confirmSave } = useSettingsSection({
     form,

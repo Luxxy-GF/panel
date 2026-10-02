@@ -25,6 +25,7 @@ import Anchor from '@/elements/typography/Anchor.tsx';
 import Code from '@/elements/typography/Code.tsx';
 import Text from '@/elements/typography/Text.tsx';
 import { queryKeys } from '@/lib/queryKeys.ts';
+import { useUnsavedChanges } from '@/plugins/form/useFormDraft.ts';
 import { useResource } from '@/plugins/resource/useResource.ts';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
@@ -103,6 +104,8 @@ export default function EmailTemplatesContainer() {
     : '';
   const isContentDirty =
     template !== undefined && editorContent !== '' && editorContent !== (template.content ?? template.defaultContent);
+
+  const blocker = useUnsavedChanges('mailTemplates', isContentDirty || form.isDirty());
 
   const doSave = () => {
     if (!selectedIdentifier || !template) return;
@@ -211,6 +214,15 @@ export default function EmailTemplatesContainer() {
 
   return (
     <AdminSubContentContainer title={t('pages.admin.settings.tabs.mailTemplates.page.title', {})} titleOrder={2}>
+      <ConfirmationModal
+        title={t('common.modal.unsavedChanges.title', {})}
+        opened={blocker.state === 'blocked'}
+        onClose={() => blocker.reset()}
+        onConfirmed={() => blocker.proceed()}
+        confirm={t('common.button.leavePage', {})}
+      >
+        {t('common.modal.unsavedChanges.content', {}).md()}
+      </ConfirmationModal>
       <ConfirmationModal
         title={t('pages.admin.settings.tabs.mailTemplates.page.modal.reset.title', {})}
         opened={confirmReset}

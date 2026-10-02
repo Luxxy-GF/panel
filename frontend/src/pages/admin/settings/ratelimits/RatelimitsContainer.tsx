@@ -11,6 +11,7 @@ import Stack from '@/elements/layout/Stack.tsx';
 import Code from '@/elements/typography/Code.tsx';
 import Title from '@/elements/typography/Title.tsx';
 import { adminSettingsRatelimitsSchema } from '@/lib/schemas/admin/settings.ts';
+import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import { useAdminStore } from '@/stores/admin.tsx';
@@ -31,6 +32,7 @@ export default function RatelimitsContainer() {
   });
 
   useHydrateForm(form, ratelimits, ratelimitsToFormValues);
+  useFormDraft(form, 'ratelimits');
 
   const { loading, submit } = useSettingsSection({
     form,

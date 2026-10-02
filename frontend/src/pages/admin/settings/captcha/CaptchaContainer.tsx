@@ -7,6 +7,7 @@ import Select from '@/elements/input/Select.tsx';
 import Group from '@/elements/layout/Group.tsx';
 import { captchaProviderTypeLabelMapping, mappingToSelectData } from '@/lib/enums.ts';
 import { adminSettingsCaptchaProviderSchema } from '@/lib/schemas/admin/settings.ts';
+import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import { useAdminStore } from '@/stores/admin.tsx';
@@ -28,6 +29,7 @@ export default function CaptchaContainer() {
   });
 
   useHydrateForm(form, captchaProvider, captchaToFormValues);
+  useFormDraft(form, 'captcha');
 
   const { loading, submit } = useSettingsSection({
     form,

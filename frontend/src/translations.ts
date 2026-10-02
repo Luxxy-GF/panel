@@ -202,6 +202,11 @@ const baseTranslations = defineTranslations({
         duplicate: {
           title: 'Duplicate {resource}',
         },
+        unsavedChanges: {
+          title: 'Unsaved Changes',
+          content:
+            'You have unsaved changes. Are you sure you want to leave this page? If you leave, your changes will be lost.',
+        },
         delete: {
           content: 'Are you sure you want to delete **{name}**?',
         },

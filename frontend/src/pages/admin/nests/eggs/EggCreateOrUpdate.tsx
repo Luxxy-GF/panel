@@ -35,6 +35,7 @@ import { queryKeys } from '@/lib/queryKeys.ts';
 import { adminEggRepositoryEggSchema, adminEggRepositorySchema } from '@/lib/schemas/admin/eggRepositories.ts';
 import { adminEggSchema, adminEggUpdateSchema } from '@/lib/schemas/admin/eggs.ts';
 import { adminNestSchema } from '@/lib/schemas/admin/nests.ts';
+import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useResourceForm } from '@/plugins/resource/useResourceForm.ts';
 import { useSearchableResource } from '@/plugins/resource/useSearchableResource.ts';
@@ -67,7 +68,10 @@ export default function EggCreateOrUpdate({
   const form = useForm<z.infer<typeof adminEggUpdateSchema>>({
     mode: 'uncontrolled',
     initialValues: eggEmptyFormValues,
-    onValuesChange: () => setIsValid(form.isValid()),
+    onValuesChange: () => {
+      setIsValid(form.isValid());
+      syncDraft();
+    },
     validateInputOnBlur: true,
     validate: zod4Resolver(adminEggUpdateSchema),
   });
@@ -92,6 +96,7 @@ export default function EggCreateOrUpdate({
   });
 
   useHydrateForm(form, contextEgg, eggToFormValues);
+  const syncDraft = useFormDraft(form, 'general');
 
   const eggRepositories = useSearchableResource<z.infer<typeof adminEggRepositorySchema>>({
     queryKey: queryKeys.admin.eggRepositories.all(),
@@ -138,7 +143,9 @@ export default function EggCreateOrUpdate({
 
     getEgg(contextNest.uuid, contextEgg.uuid)
       .then((egg) => {
-        form.setValues(eggToFormValues(egg));
+        const values = eggToFormValues(egg);
+        form.resetDirty({ ...form.getValues(), ...values });
+        form.setValues(values);
         addToast(t('pages.admin.nests.tabs.eggs.page.tabs.general.page.toast.updated', {}), 'success');
       })
       .catch((msg) => {

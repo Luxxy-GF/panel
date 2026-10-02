@@ -13,6 +13,7 @@ import ConfirmationModal from '@/elements/modals/ConfirmationModal.tsx';
 import { queryKeys } from '@/lib/queryKeys.ts';
 import { storageAssetSchema } from '@/lib/schemas/admin/assets.ts';
 import { adminSettingsApplicationSchema } from '@/lib/schemas/admin/settings.ts';
+import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useSearchableResource } from '@/plugins/resource/useSearchableResource.ts';
 import { useAdminCan } from '@/plugins/usePermissions.ts';
@@ -57,6 +58,7 @@ export default function ApplicationContainer() {
   });
 
   useHydrateForm(form, app, applicationToFormValues);
+  useFormDraft(form, 'application');
 
   const { loading, submit } = useSettingsSection({
     form,

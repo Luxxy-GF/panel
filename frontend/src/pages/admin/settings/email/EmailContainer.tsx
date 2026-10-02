@@ -10,6 +10,7 @@ import Select from '@/elements/input/Select.tsx';
 import Group from '@/elements/layout/Group.tsx';
 import { mailModeTypeLabelMapping, mappingToSelectData } from '@/lib/enums.ts';
 import { adminSettingsEmailSchema } from '@/lib/schemas/admin/settings.ts';
+import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import { useAdminStore } from '@/stores/admin.tsx';
@@ -34,6 +35,7 @@ export default function EmailContainer() {
   });
 
   useHydrateForm(form, mailMode, emailToFormValues);
+  useFormDraft(form, 'mail');
 
   const { loading, submit } = useSettingsSection({
     form,

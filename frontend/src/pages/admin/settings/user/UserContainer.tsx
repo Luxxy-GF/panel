@@ -12,6 +12,7 @@ import Group from '@/elements/layout/Group.tsx';
 import RouteOrderEditor from '@/elements/navigation/RouteOrderEditor.tsx';
 import { adminSettingsUserSchema } from '@/lib/schemas/admin/settings.ts';
 import { eggConfigurationRouteItemSchema } from '@/lib/schemas/generic.ts';
+import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
@@ -47,6 +48,7 @@ export default function UserContainer() {
   });
 
   useHydrateForm(form, user, userSettingsToFormValues);
+  useFormDraft(form, 'user');
 
   useEffect(() => {
     loadAccountRoutes()
