@@ -7,6 +7,7 @@ import Select from '@/elements/input/Select.tsx';
 import Group from '@/elements/layout/Group.tsx';
 import { captchaProviderTypeLabelMapping, mappingToSelectData } from '@/lib/enums.ts';
 import { adminSettingsCaptchaProviderSchema } from '@/lib/schemas/admin/settings.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
@@ -24,7 +25,7 @@ export default function CaptchaContainer() {
 
   const form = useForm<CaptchaValues>({
     initialValues: captchaEmptyFormValues,
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(adminSettingsCaptchaProviderSchema),
   });
 

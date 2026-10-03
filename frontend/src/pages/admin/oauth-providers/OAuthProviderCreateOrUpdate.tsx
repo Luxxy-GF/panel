@@ -56,7 +56,6 @@ export default function OAuthProviderCreateOrUpdate({
     mode: 'uncontrolled',
     initialValues: oauthProviderEmptyFormValues,
     onValuesChange: () => setIsValid(form.isValid()),
-    validateInputOnBlur: true,
   });
 
   const { loading, doCreateOrUpdate, doDelete } = useResourceForm<

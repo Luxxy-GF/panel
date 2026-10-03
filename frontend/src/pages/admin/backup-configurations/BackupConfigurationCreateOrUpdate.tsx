@@ -93,14 +93,12 @@ export default function BackupConfigurationCreateOrUpdate({
     {
       schema: adminBackupConfigurationUpdateSchema.unwrap(),
       initialValues: backupConfigurationEmptyFormValues,
-      validateInputOnBlur: true,
     },
   );
 
   const s3Form = useFormEngine<z.infer<typeof adminBackupConfigurationS3Schema>>('admin.backupConfigurations.s3', {
     schema: adminBackupConfigurationS3Schema,
     initialValues: backupConfigurationS3EmptyFormValues,
-    validateInputOnBlur: true,
   });
 
   const resticForm = useFormEngine<z.infer<typeof adminBackupConfigurationResticSchema>>(
@@ -108,14 +106,12 @@ export default function BackupConfigurationCreateOrUpdate({
     {
       schema: adminBackupConfigurationResticSchema,
       initialValues: backupConfigurationResticEmptyFormValues,
-      validateInputOnBlur: true,
     },
   );
 
   const pbsForm = useFormEngine<z.infer<typeof adminBackupConfigurationPbsSchema>>('admin.backupConfigurations.pbs', {
     schema: adminBackupConfigurationPbsSchema,
     initialValues: backupConfigurationPbsEmptyFormValues,
-    validateInputOnBlur: true,
   });
 
   const kopiaForm = useFormEngine<z.infer<typeof adminBackupConfigurationKopiaSchema>>(
@@ -123,7 +119,6 @@ export default function BackupConfigurationCreateOrUpdate({
     {
       schema: adminBackupConfigurationKopiaSchema,
       initialValues: backupConfigurationKopiaEmptyFormValues,
-      validateInputOnBlur: true,
     },
   );
 

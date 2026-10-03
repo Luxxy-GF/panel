@@ -8,6 +8,7 @@ import Group from '@/elements/layout/Group.tsx';
 import ConfirmationModal from '@/elements/modals/ConfirmationModal.tsx';
 import { mappingToSelectData, storageDriverTypeLabelMapping } from '@/lib/enums.ts';
 import { adminSettingsStorageSchema } from '@/lib/schemas/admin/settings.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
@@ -25,7 +26,7 @@ export default function StorageContainer() {
 
   const form = useForm<StorageValues>({
     initialValues: storageEmptyFormValues,
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(adminSettingsStorageSchema),
   });
 

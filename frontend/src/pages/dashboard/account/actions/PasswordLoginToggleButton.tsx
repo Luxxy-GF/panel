@@ -13,6 +13,7 @@ import { ModalFooter } from '@/elements/modals/Modal.tsx';
 import ConditionalTooltip from '@/elements/overlays/ConditionalTooltip.tsx';
 import Text from '@/elements/typography/Text.tsx';
 import { dashboardPasswordLoginSchema } from '@/lib/schemas/dashboard.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useAuth } from '@/providers/AuthProvider.tsx';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
@@ -32,7 +33,7 @@ export default function PasswordLoginToggleButton() {
     initialValues: {
       password: '',
     },
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(
       dashboardPasswordLoginSchema.extend({
         password: z.string().min(1, t('common.form.passwordRequired', {})).max(512),

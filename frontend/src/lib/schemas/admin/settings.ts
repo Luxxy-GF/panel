@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { oobeStepKey } from '@/lib/schemas/oobe.ts';
+import { ruleMessage } from '@/lib/schemas/rules.ts';
 import { twoFactorMethod } from '@/lib/schemas/user.ts';
 import { nullableNumber, nullableString } from '@/lib/serialization/transformers.ts';
 import { eggConfigurationRouteItemSchema, hostnameSchema } from '../generic.ts';
@@ -86,7 +87,10 @@ export const adminSettingsCaptchaProviderCapSchema = z.object({
     .string()
     .min(1)
     .max(255)
-    .regex(/^[a-zA-Z0-9_-]+$/),
+    .regex(
+      /^[a-zA-Z0-9_-]+$/,
+      ruleMessage((t) => t('common.form.rule.captchaSiteKey', {})),
+    ),
   secretKey: z.string().min(1).max(255),
 });
 
@@ -179,7 +183,10 @@ export const adminSettingsEmailVariableCreateSchema = z.object({
     .string()
     .min(1)
     .max(64)
-    .regex(/^[a-z][a-z0-9_]{0,63}$/),
+    .regex(
+      /^[a-z][a-z0-9_]{0,63}$/,
+      ruleMessage((t) => t('common.form.rule.variableName', {})),
+    ),
   value: z.string().min(1).max(8192),
   valueTranslations: z.record(z.string(), z.string().min(1).max(8192)),
 });
@@ -291,7 +298,10 @@ export const adminSettingsWebauthnSchema = z.object({
 
 export const adminSettingsMetadataSchema = z.object({
   description: z.preprocess(nullableString, z.string().min(1).max(320).nullable()),
-  themeColor: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  themeColor: z.string().regex(
+    /^#[0-9a-fA-F]{6}$/,
+    ruleMessage((t) => t('common.form.rule.hexColor', {})),
+  ),
   ogImage: z.preprocess(nullableString, z.string().min(1).max(255).nullable()),
   twitterCard: z.enum(['summary', 'summary_large_image']),
   indexable: z.boolean(),

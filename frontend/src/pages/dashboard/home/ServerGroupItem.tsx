@@ -333,7 +333,7 @@ export default function ServerGroupItem({
               <span className='font-medium flex-1 min-w-0 text-left'>
                 <ScrollingText>{serverGroup.name}</ScrollingText>
               </span>
-              <Badge variant={isDark ? 'light' : 'filled'} color='gray'>
+              <Badge variant={isDark ? 'light' : 'filled'} color='gray' loading={loading && servers.data.length === 0}>
                 {tItem('server', serverCount)}
               </Badge>
             </button>

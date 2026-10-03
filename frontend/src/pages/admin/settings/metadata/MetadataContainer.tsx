@@ -29,7 +29,6 @@ export default function MetadataContainer() {
   const form = useFormEngine<MetadataFormValues>('admin.settings.metadata', {
     schema: adminSettingsMetadataSchema,
     initialValues: metadataEmptyFormValues,
-    validateInputOnBlur: true,
   });
 
   const assets = useSearchableResource<z.infer<typeof storageAssetSchema>>({

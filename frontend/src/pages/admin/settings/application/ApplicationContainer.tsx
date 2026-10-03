@@ -48,7 +48,6 @@ export default function ApplicationContainer() {
   const form = useFormEngine<AppFormValues>('admin.settings.application', {
     schema: adminSettingsApplicationSchema,
     initialValues: applicationEmptyFormValues,
-    validateInputOnBlur: true,
   });
 
   const assets = useSearchableResource<z.infer<typeof storageAssetSchema>>({

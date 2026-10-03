@@ -66,6 +66,7 @@ export default function DatabaseInstanceUserCreateModal({ instance, databases, .
         <TextInput
           withAsterisk
           label={t('common.form.username', {})}
+          description={t('common.form.rule.databaseInstanceIdentifier', {})}
           {...ignorePasswordManagerProps}
           {...form.getInputProps('username')}
         />

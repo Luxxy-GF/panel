@@ -17,6 +17,7 @@ import Stack from '@/elements/layout/Stack.tsx';
 import Text from '@/elements/typography/Text.tsx';
 import Title from '@/elements/typography/Title.tsx';
 import { authForgotPasswordSchema } from '@/lib/schemas/auth.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import { useGlobalStore } from '@/stores/global.ts';
 import AuthWrapper from './AuthWrapper.tsx';
@@ -36,7 +37,7 @@ export default function ForgotPassword() {
     initialValues: {
       email: '',
     },
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(authForgotPasswordSchema),
   });
 

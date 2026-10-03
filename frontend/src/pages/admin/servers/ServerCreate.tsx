@@ -68,7 +68,6 @@ export default function ServerCreate() {
     mode: 'uncontrolled',
     initialValues: serverCreateEmptyFormValues,
     onValuesChange: () => setIsValid(form.isValid()),
-    validateInputOnBlur: true,
   });
 
   const { loading, doCreateOrUpdate } = useResourceForm<ServerCreateFormValues, AdminServer>({

@@ -23,6 +23,7 @@ import Code from '@/elements/typography/Code.tsx';
 import Text from '@/elements/typography/Text.tsx';
 import { withTwoFactorMethod } from '@/lib/auth/twoFactor.ts';
 import { dashboardTwoFactorEnableSchema } from '@/lib/schemas/dashboard.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useAuth } from '@/providers/AuthProvider.tsx';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
@@ -52,7 +53,7 @@ export default function TwoFactorSetupButton() {
       code: '',
       password: '',
     },
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(
       dashboardTwoFactorEnableSchema.extend({
         password: user?.hasPassword

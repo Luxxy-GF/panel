@@ -44,7 +44,6 @@ export default function UserContainer() {
   const form = useFormEngine<UserFormValues>('admin.settings.user', {
     schema: adminSettingsUserSchema,
     initialValues: userSettingsEmptyFormValues,
-    validateInputOnBlur: true,
   });
 
   useHydrateForm(form, user, userSettingsToFormValues);

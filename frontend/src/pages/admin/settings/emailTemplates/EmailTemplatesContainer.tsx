@@ -25,6 +25,7 @@ import Anchor from '@/elements/typography/Anchor.tsx';
 import Code from '@/elements/typography/Code.tsx';
 import Text from '@/elements/typography/Text.tsx';
 import { queryKeys } from '@/lib/queryKeys.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useUnsavedChanges } from '@/plugins/form/useFormDraft.ts';
 import { useResource } from '@/plugins/resource/useResource.ts';
 import { useToast } from '@/providers/ToastProvider.tsx';
@@ -48,7 +49,7 @@ export default function EmailTemplatesContainer() {
 
   const form = useForm<z.infer<typeof templateFormSchema>>({
     initialValues: { subject: '', enabled: true },
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(templateFormSchema),
   });
 

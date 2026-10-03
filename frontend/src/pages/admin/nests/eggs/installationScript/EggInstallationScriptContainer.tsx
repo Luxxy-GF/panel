@@ -37,7 +37,6 @@ export default function EggInstallationScriptContainer({
   const form = useFormEngine<ScriptFormValues>('admin.nests.eggs.installationScript', {
     schema: adminEggConfigScriptSchema,
     initialValues: eggScriptEmptyFormValues,
-    validateInputOnBlur: true,
   });
 
   useHydrateForm(form, contextEgg, eggToScriptFormValues);

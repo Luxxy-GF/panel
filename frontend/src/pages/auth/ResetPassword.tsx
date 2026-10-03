@@ -15,6 +15,7 @@ import Stack from '@/elements/layout/Stack.tsx';
 import Text from '@/elements/typography/Text.tsx';
 import Title from '@/elements/typography/Title.tsx';
 import { authResetPasswordSchema } from '@/lib/schemas/auth.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import AuthWrapper from './AuthWrapper.tsx';
@@ -34,7 +35,7 @@ export default function ResetPassword() {
       password: '',
       confirmPassword: '',
     },
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(authResetPasswordSchema),
   });
 

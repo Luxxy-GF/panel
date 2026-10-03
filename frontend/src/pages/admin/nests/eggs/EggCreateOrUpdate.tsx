@@ -35,6 +35,7 @@ import { queryKeys } from '@/lib/queryKeys.ts';
 import { adminEggRepositoryEggSchema, adminEggRepositorySchema } from '@/lib/schemas/admin/eggRepositories.ts';
 import { adminEggSchema, adminEggUpdateSchema } from '@/lib/schemas/admin/eggs.ts';
 import { adminNestSchema } from '@/lib/schemas/admin/nests.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useResourceForm } from '@/plugins/resource/useResourceForm.ts';
@@ -72,7 +73,7 @@ export default function EggCreateOrUpdate({
       setIsValid(form.isValid());
       syncDraft();
     },
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(adminEggUpdateSchema),
   });
 

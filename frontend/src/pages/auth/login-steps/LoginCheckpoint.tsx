@@ -22,6 +22,7 @@ import Text from '@/elements/typography/Text.tsx';
 import Title from '@/elements/typography/Title.tsx';
 import { authTotpSchema } from '@/lib/schemas/auth.ts';
 import { type twoFactorMethod, userSchema } from '@/lib/schemas/user.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useAuth } from '@/providers/AuthProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import { useGlobalStore } from '@/stores/global.ts';
@@ -80,7 +81,7 @@ export default function LoginCheckpoint() {
     initialValues: {
       code: '',
     },
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(authTotpSchema),
   });
 

@@ -17,8 +17,10 @@ use std::{
 };
 use utoipa::ToSchema;
 
+mod allowed_sources;
 mod enrollment;
 mod events;
+pub use allowed_sources::NodeAllowedSources;
 pub use enrollment::NodeEnrollment;
 pub use events::NodeEvent;
 
@@ -810,6 +812,23 @@ impl Node {
                     wings_api::FirewallBackendKind::Disabled
                 ),
         )
+    }
+
+    /// The node's `allowed_mounts` / `allowed_devices`, `None` when its configuration could
+    /// not be retrieved in time.
+    pub async fn fetch_allowed_sources(
+        &self,
+        database: &crate::database::Database,
+    ) -> Option<NodeAllowedSources> {
+        const ALLOWED_SOURCES_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(3);
+
+        let config =
+            tokio::time::timeout(ALLOWED_SOURCES_TIMEOUT, self.fetch_configuration(database))
+                .await
+                .ok()?
+                .ok()?;
+
+        Some(NodeAllowedSources::from_config(&config))
     }
 
     /// What the node reports about its mesh daemon, `None` when it could not be reached in

@@ -25,6 +25,7 @@ import Text from '@/elements/typography/Text.tsx';
 import Title from '@/elements/typography/Title.tsx';
 import { authPasswordSchema, authUsernameSchema } from '@/lib/schemas/auth.ts';
 import { oAuthProviderSchema } from '@/lib/schemas/generic.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useAuth } from '@/providers/AuthProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
 import { useGlobalStore } from '@/stores/global.ts';
@@ -52,7 +53,7 @@ export default function Login() {
     initialValues: {
       username: '',
     },
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(authUsernameSchema),
   });
 
@@ -60,7 +61,7 @@ export default function Login() {
     initialValues: {
       password: '',
     },
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(authPasswordSchema),
   });
 

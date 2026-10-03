@@ -25,7 +25,6 @@ export default function ServerContainer() {
   const form = useFormEngine<ServerFormValues>('admin.settings.server', {
     schema: adminSettingsServerSchema,
     initialValues: serverSettingsEmptyFormValues,
-    validateInputOnBlur: true,
   });
 
   useHydrateForm(form, server, serverSettingsToFormValues);

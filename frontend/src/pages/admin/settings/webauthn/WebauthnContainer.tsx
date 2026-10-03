@@ -26,7 +26,6 @@ export default function WebauthnContainer() {
   const form = useFormEngine<WebauthnFormValues>('admin.settings.webauthn', {
     schema: adminSettingsWebauthnSchema,
     initialValues: webauthnEmptyFormValues,
-    validateInputOnBlur: true,
   });
 
   useHydrateForm(form, webauthn, webauthnToFormValues);

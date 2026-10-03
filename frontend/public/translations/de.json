@@ -364,14 +364,6 @@
           "yearly": "Jährliche Backups behalten",
           "ruleSummary": "{rule}: {count}",
           "status": {
-            "rule": {
-              "count": "Neueste",
-              "days": "Kürzlich",
-              "daily": "Täglich",
-              "weekly": "Wöchentlich",
-              "monthly": "Monatlich",
-              "yearly": "Jährlich"
-            },
             "locked": "Gesperrt",
             "indefinite": "Unbegrenzt behalten",
             "expired": "Wird entfernt",
@@ -530,7 +522,17 @@
         "target": "Ziel",
         "replaceWith": "Ersetzen durch",
         "caseInsensitive": "Groß-/Kleinschreibung ignorieren",
-        "truncateDirectory": "Möchtest du alle Dateien dieses Servers löschen, bevor diese Aktion ausgeführt wird? Dies kann nicht rückgängig gemacht werden."
+        "truncateDirectory": "Möchtest du alle Dateien dieses Servers löschen, bevor diese Aktion ausgeführt wird? Dies kann nicht rückgängig gemacht werden.",
+        "rule": {
+          "invalidCharacters": "Enthält Zeichen, die hier nicht erlaubt sind.",
+          "username": "3 bis 15 Zeichen, nur Buchstaben, Ziffern und Unterstriche.",
+          "databaseName": "Bis zu 31 Zeichen, nur Buchstaben, Ziffern und Unterstriche.",
+          "databaseInstanceIdentifier": "2 bis 23 Zeichen, nur Buchstaben und Ziffern.",
+          "captchaSiteKey": "Nur Buchstaben, Ziffern, Bindestriche und Unterstriche.",
+          "variableName": "Beginnt mit einem Kleinbuchstaben, gefolgt von bis zu 63 Kleinbuchstaben, Ziffern oder Unterstrichen.",
+          "hexColor": "Eine Hex-Farbe wie #1c7ed6.",
+          "devicePermissions": "Beliebige Kombination aus r (lesen), w (schreiben) und m (mknod)."
+        }
       },
       "table": {
         "selectRow": "Zeile auswählen",
@@ -656,6 +658,12 @@
           "memoryUsageUnlimited": "Arbeitsspeicher: {used} belegt, kein Node-Limit",
           "diskUsage": "Speicherplatz: {used} / {limit}",
           "diskUsageUnlimited": "Speicherplatz: {used} belegt, kein Node-Limit"
+        },
+        "allowedSources": {
+          "checking": "Prüfe Node",
+          "notAllowed": "Auf Node nicht erlaubt",
+          "mountNotAllowed": "Die Quelle dieses Mounts ist nicht durch `allowed_mounts` des Nodes abgedeckt, deshalb überspringt Wings ihn beim Starten des Servers.",
+          "deviceNotAllowed": "Die Quelle dieses Geräts ist nicht durch `allowed_devices` des Nodes abgedeckt (oder seine Berechtigungen sind ungültig), deshalb überspringt Wings es beim Starten des Servers."
         }
       },
       "server": {
@@ -696,6 +704,14 @@
           "starting": "Startet",
           "finished": "Abgeschlossen",
           "failed": "Fehlgeschlagen"
+        },
+        "backupRetentionRule": {
+          "count": "Neueste",
+          "days": "Kürzlich",
+          "daily": "Täglich",
+          "weekly": "Wöchentlich",
+          "monthly": "Monatlich",
+          "yearly": "Jährlich"
         },
         "serverBackupKind": {
           "server": "Server",
@@ -1594,10 +1610,12 @@
               "none": "Für dein Konto ist noch kein zweiter Faktor eingerichtet.",
               "requirementMet": "Dein Konto erfüllt die Zwei-Faktor-Anforderung.",
               "requirementUnmet": "Dein Konto erfüllt die Zwei-Faktor-Anforderung noch nicht.",
-              "method": {
-                "totp": "Authenticator-App",
-                "securityKey": "Sicherheitsschlüssel",
-                "email": "E-Mail"
+              "enum": {
+                "twoFactorMethod": {
+                  "totp": "Authenticator-App",
+                  "securityKey": "Sicherheitsschlüssel",
+                  "email": "E-Mail"
+                }
               }
             },
             "emailTwoFactor": {
@@ -2063,11 +2081,14 @@
                     "misses": "Berechnet"
                   }
                 },
-                "containerType": {
-                  "none": "Keine erkannt",
-                  "official": "Offiziell",
-                  "officialAio": "Offiziell (AIO)",
-                  "officialHeavy": "Offiziell (Heavy)"
+                "enum": {
+                  "containerType": {
+                    "none": "Keine erkannt",
+                    "official": "Offiziell",
+                    "officialAio": "Offiziell (AIO)",
+                    "officialHeavy": "Offiziell (Heavy)",
+                    "officialHeavyAio": "Offiziell (Heavy AIO)"
+                  }
                 },
                 "stats": {
                   "users": "Benutzer",
@@ -2311,6 +2332,9 @@
                 },
                 "toast": {
                   "updated": "E-Mail-Einstellungen aktualisiert."
+                },
+                "tooltip": {
+                  "noProvider": "Speichere einen E-Mail-Anbieter, bevor du eine Test-E-Mail sendest."
                 },
                 "modal": {
                   "sendTestEmail": {

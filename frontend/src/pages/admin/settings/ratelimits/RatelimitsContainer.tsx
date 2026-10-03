@@ -11,6 +11,7 @@ import Stack from '@/elements/layout/Stack.tsx';
 import Code from '@/elements/typography/Code.tsx';
 import Title from '@/elements/typography/Title.tsx';
 import { adminSettingsRatelimitsSchema } from '@/lib/schemas/admin/settings.ts';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { useFormDraft } from '@/plugins/form/useFormDraft.ts';
 import { useHydrateForm } from '@/plugins/form/useHydrateForm.ts';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
@@ -27,7 +28,7 @@ export default function RatelimitsContainer() {
 
   const form = useForm<RatelimitsSchema>({
     initialValues: ratelimitsEmptyFormValues,
-    validateInputOnBlur: true,
+    ...liveValidation,
     validate: zod4Resolver(adminSettingsRatelimitsSchema),
   });
 

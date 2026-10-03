@@ -4,6 +4,7 @@ import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { useMemo } from 'react';
 import { deepMergeZods } from 'shared';
 import { type ZodType, z } from 'zod';
+import { liveValidation } from '@/plugins/form/liveValidation.ts';
 import { FormId } from './types.ts';
 
 const formIds = new WeakMap<object, FormId>();
@@ -53,6 +54,7 @@ export function useFormEngine<T extends Record<string, unknown>, P = T>(
   const resolved = useMemo(() => resolveFormValidation<T, P>(formId, schema), [formId, schema]);
 
   const form = useForm<T, P>({
+    ...liveValidation,
     ...formInput,
     initialValues: deepmerge(initialValues, resolved.initialValues) as T,
     validate: resolved.validate,

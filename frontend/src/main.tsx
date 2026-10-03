@@ -1,3 +1,4 @@
+import { InputWrapper, mergeThemeOverrides, Tooltip } from '@mantine/core';
 import { createRoot } from 'react-dom/client';
 import { Extension, ExtensionContext } from 'shared';
 import App from '@/App.tsx';
@@ -23,6 +24,18 @@ for (const [path, module] of Object.entries({ ...extensionModulesTs, ...extensio
     console.error('Invalid frontend module', identifier, module);
   }
 }
+
+const baseTheme = {
+  components: {
+    InputWrapper: InputWrapper.extend({
+      styles: (_theme, props) =>
+        props.description && props.description === props.error ? { description: { display: 'none' } } : {},
+    }),
+    Tooltip: Tooltip.extend({
+      styles: { tooltip: { '--code-bg': 'color-mix(in srgb, currentColor 15%, transparent)' } },
+    }),
+  },
+};
 
 const CHUNK_RELOAD_ATTEMPTS_KEY = 'chunkReloadAttempts';
 const MAX_CHUNK_RELOAD_ATTEMPTS = 3;
@@ -98,7 +111,7 @@ setExtensionStylesEnabled(() => false);
 
   createRoot(root!).render(
     <App
-      theme={window.extensionContext.getMantineTheme()}
+      theme={mergeThemeOverrides(baseTheme, window.extensionContext.getMantineTheme())}
       cssVariablesResolver={window.extensionContext.getMantineCssResolver()}
     />,
   );
