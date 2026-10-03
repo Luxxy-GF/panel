@@ -5605,6 +5605,8 @@ const baseTranslations = defineTranslations({
             editorEngine: 'Editor Engine',
             editorPreviewTabs: 'Preview files in tree tabs',
             editorPreviewTabsDescription: 'Edit or double-click a tab to keep it open.',
+            alwaysOverwrite: 'Always overwrite existing files',
+            alwaysOverwriteDescription: 'Skip the conflict prompt when uploading, copying or pasting.',
             vscodeUriScheme: 'VS Code URI Scheme',
             imageViewerSmoothing: 'Smoothen Image (Anti-Aliasing)',
           },

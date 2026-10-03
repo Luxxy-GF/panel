@@ -5580,6 +5580,8 @@
             "editorEngine": "Editor-Engine",
             "editorPreviewTabs": "Dateivorschau in Baum-Tabs",
             "editorPreviewTabsDescription": "Bearbeiten oder doppelklicken, um einen Tab offen zu halten.",
+            "alwaysOverwrite": "Vorhandene Dateien immer überschreiben",
+            "alwaysOverwriteDescription": "Keine Konfliktabfrage beim Hochladen, Kopieren oder Einfügen.",
             "vscodeUriScheme": "VS Code URI-Schema",
             "imageViewerSmoothing": "Bildglättung (Anti-Aliasing)"
           },
