@@ -119,6 +119,7 @@ export default function OobeServer({ onNext, onBack, canGoBack, skipFrom, data }
       setInstalledEgg(egg);
 
       await createServer({
+        instance: null,
         externalId: null,
         name: form.getValues().name,
         description: null,

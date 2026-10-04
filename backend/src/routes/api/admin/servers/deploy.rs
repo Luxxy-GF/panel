@@ -309,6 +309,7 @@ mod post {
         let allocation_uuids = allocation_uuids.unwrap_or_default();
 
         let options = shared::models::server::CreateServerOptions {
+            instance: None,
             node_uuid,
             owner_uuid: data.owner_uuid,
             egg_uuid: data.egg_uuid,

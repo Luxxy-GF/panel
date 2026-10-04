@@ -16,6 +16,8 @@ import getEggVariables from '@/api/admin/nests/eggs/variables/getEggVariables.ts
 import getNests from '@/api/admin/nests/getNests.ts';
 import getAvailableNodeAllocations from '@/api/admin/nodes/allocations/getAvailableNodeAllocations.ts';
 import getNodes from '@/api/admin/nodes/getNodes.ts';
+import getNodeImages, { type NativeImage } from '@/api/admin/nodes/system/getNodeImages.ts';
+import getNodeRuntime, { type NodeRuntime } from '@/api/admin/nodes/system/getNodeRuntime.ts';
 import createServer from '@/api/admin/servers/createServer.ts';
 import getUsers from '@/api/admin/users/getUsers.ts';
 import { getEmptyPaginationSet, httpErrorToHuman } from '@/api/axios.ts';
@@ -94,6 +96,69 @@ export default function ServerCreate() {
 
   const [selectedEggUuid, setSelectedEggUuid] = useState('');
   const [selectedNodeUuid, setSelectedNodeUuid] = useState('');
+  const [runtime, setRuntime] = useState<NodeRuntime | null>(null);
+  const [nativeImages, setNativeImages] = useState<NativeImage[]>([]);
+  const [instanceKind, setInstanceKind] = useState<'application' | 'container' | 'virtual_machine'>('application');
+  const [runtimeLoading, setRuntimeLoading] = useState(false);
+  const [selectedNativeImage, setSelectedNativeImage] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    setRuntime(null);
+    setNativeImages([]);
+    setInstanceKind('application');
+    setSelectedNativeImage('');
+    form.setFieldValue('instance', null);
+    form.setFieldValue('eggUuid', '');
+    form.setFieldValue('image', '');
+    form.setFieldValue('startup', '');
+    form.setFieldValue('skipInstaller', false);
+    setRuntimeLoading(false);
+    if (!selectedNodeUuid || !canReadNodes) return;
+    setRuntimeLoading(true);
+    getNodeRuntime(selectedNodeUuid)
+      .then(async (capabilities) => {
+        if (!active) return;
+        setRuntime(capabilities);
+        if (capabilities?.backend === 'incus') {
+          const images = await getNodeImages(selectedNodeUuid);
+          if (active) setNativeImages(images);
+        }
+      })
+      .catch((error) => {
+        if (active) addToast(httpErrorToHuman(error), 'error');
+      })
+      .finally(() => {
+        if (active) setRuntimeLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedNodeUuid, canReadNodes]);
+
+  const chooseInstanceKind = (kind: 'application' | 'container' | 'virtual_machine') => {
+    setInstanceKind(kind);
+    setSelectedNativeImage('');
+    if (kind === 'application') {
+      form.setFieldValue('instance', null);
+      form.setFieldValue('eggUuid', '');
+      form.setFieldValue('image', '');
+      form.setFieldValue('startup', '');
+      form.setFieldValue('skipInstaller', false);
+    } else {
+      setSelectedNestUuid(null);
+      setEggVariables([]);
+      form.setFieldValue('instance', { kind, image: '' });
+      form.setFieldValue('eggUuid', '7f9047ea-14c8-4f8f-a1de-f267ea740111');
+      form.setFieldValue('startup', '/sbin/init');
+      form.setFieldValue('skipInstaller', true);
+      form.setFieldValue('variables', []);
+      const limits = form.getValues().limits;
+      form.setFieldValue('limits.disk', Math.max(limits.disk, kind === 'virtual_machine' ? 8192 : 4096));
+      if (kind === 'virtual_machine') form.setFieldValue('limits.memory', Math.max(limits.memory, 512));
+    }
+  };
+
   form.watch('eggUuid', ({ value }) => setSelectedEggUuid(value));
   form.watch('nodeUuid', ({ value }) => setSelectedNodeUuid(value));
 
@@ -220,7 +285,14 @@ export default function ServerCreate() {
               title={t('pages.admin.servers.tabs.general.page.card.serverAssignment', {})}
               icon={<FontAwesomeIcon icon={faAddressCard} />}
             >
-              <FormEngine form={form} fields={serverAssignmentFields} />
+              <FormEngine
+                form={form}
+                fields={
+                  instanceKind === 'application'
+                    ? serverAssignmentFields
+                    : serverAssignmentFields.filter((field) => field.name !== 'eggUuid' && field.name !== '_nestSelect')
+                }
+              />
             </TitleCard>
 
             <TitleCard
@@ -234,7 +306,46 @@ export default function ServerCreate() {
               title={t('pages.admin.servers.tabs.general.page.card.serverConfiguration', {})}
               icon={<FontAwesomeIcon icon={faWrench} />}
             >
-              <FormEngine form={form} fields={serverConfigFields} />
+              <Stack>
+                {runtime?.backend === 'incus' && (
+                  <Select
+                    label='Instance type'
+                    value={instanceKind}
+                    disabled={runtimeLoading}
+                    allowDeselect={false}
+                    data={[
+                      { value: 'application', label: 'OCI application container' },
+                      ...(runtime.systemContainers ? [{ value: 'container', label: 'OS container' }] : []),
+                      ...(runtime.virtualMachines ? [{ value: 'virtual_machine', label: 'Virtual machine' }] : []),
+                    ]}
+                    onChange={(value) => chooseInstanceKind(value as typeof instanceKind)}
+                  />
+                )}
+                {instanceKind === 'application' ? (
+                  <FormEngine form={form} fields={serverConfigFields} />
+                ) : (
+                  <Select
+                    label='Operating system image'
+                    description={runtime?.imageServer ?? 'https://images.linuxcontainers.org'}
+                    searchable
+                    allowDeselect={false}
+                    disabled={runtimeLoading}
+                    value={selectedNativeImage || null}
+                    data={nativeImages
+                      .filter((image) => image.kind === instanceKind)
+                      .map((image) => ({ value: image.alias, label: `${image.label} (${image.alias})` }))}
+                    error={form.errors.instance ?? form.errors.image}
+                    onChange={(image) => {
+                      setSelectedNativeImage(image ?? '');
+                      form.setFieldValue('instance', {
+                        kind: instanceKind as 'container' | 'virtual_machine',
+                        image: image ?? '',
+                      });
+                      form.setFieldValue('image', image ?? '');
+                    }}
+                  />
+                )}
+              </Stack>
             </TitleCard>
 
             <TitleCard
@@ -283,45 +394,47 @@ export default function ServerCreate() {
               </div>
             </TitleCard>
 
-            <TitleCard
-              title={t('pages.admin.servers.tabs.general.page.card.variables', {})}
-              icon={<FontAwesomeIcon icon={faPlay} />}
-              className='col-span-full'
-            >
-              <Stack>
-                {!selectedNestUuid || !selectedEggUuid ? (
-                  <Alert>{t('pages.admin.servers.tabs.general.page.alert.selectEggForVariables', {})}</Alert>
-                ) : eggVariablesLoading ? (
-                  <Spinner.Centered />
-                ) : (
-                  <div className='grid grid-cols-1 xl:grid-cols-2 gap-4'>
-                    {eggVariables.map((variable) => (
-                      <VariableContainer
-                        key={variable.envVariable}
-                        variable={{
-                          ...variable,
-                          value: '',
-                          isEditable: variable.userEditable,
-                        }}
-                        loading={loading}
-                        overrideReadonly
-                        value={
-                          form.getValues().variables.find((v) => v.envVariable === variable.envVariable)?.value ??
-                          variable.defaultValue ??
-                          ''
-                        }
-                        setValue={(value) =>
-                          form.setFieldValue('variables', (prev) => [
-                            ...prev.filter((v) => v.envVariable !== variable.envVariable),
-                            { envVariable: variable.envVariable, value },
-                          ])
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </Stack>
-            </TitleCard>
+            {instanceKind === 'application' && (
+              <TitleCard
+                title={t('pages.admin.servers.tabs.general.page.card.variables', {})}
+                icon={<FontAwesomeIcon icon={faPlay} />}
+                className='col-span-full'
+              >
+                <Stack>
+                  {!selectedNestUuid || !selectedEggUuid ? (
+                    <Alert>{t('pages.admin.servers.tabs.general.page.alert.selectEggForVariables', {})}</Alert>
+                  ) : eggVariablesLoading ? (
+                    <Spinner.Centered />
+                  ) : (
+                    <div className='grid grid-cols-1 xl:grid-cols-2 gap-4'>
+                      {eggVariables.map((variable) => (
+                        <VariableContainer
+                          key={variable.envVariable}
+                          variable={{
+                            ...variable,
+                            value: '',
+                            isEditable: variable.userEditable,
+                          }}
+                          loading={loading}
+                          overrideReadonly
+                          value={
+                            form.getValues().variables.find((v) => v.envVariable === variable.envVariable)?.value ??
+                            variable.defaultValue ??
+                            ''
+                          }
+                          setValue={(value) =>
+                            form.setFieldValue('variables', (prev) => [
+                              ...prev.filter((v) => v.envVariable !== variable.envVariable),
+                              { envVariable: variable.envVariable, value },
+                            ])
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
+                </Stack>
+              </TitleCard>
+            )}
           </div>
 
           <Group>

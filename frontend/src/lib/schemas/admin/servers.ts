@@ -16,6 +16,11 @@ import { serverBackupKind } from '@/lib/schemas/server/backups.ts';
 import { serverAutostartBehavior, serverStatus } from '@/lib/schemas/server/server.ts';
 import { nullableNumber, nullableString } from '@/lib/serialization/transformers.ts';
 
+export const nativeInstanceSchema = z.object({
+  kind: z.enum(['container', 'virtual_machine']),
+  image: z.string().min(1).max(255),
+});
+
 export const adminServerLimitsSchema = z.object({
   cpu: z.number().min(0),
   memory: z.number().min(0),
@@ -50,6 +55,7 @@ export const adminServerSchema = z.looseObject({
   limits: z.lazy(() => adminServerLimitsSchema),
   pinnedCpus: z.array(z.number().int().min(0)),
   featureLimits: z.lazy(() => adminServerFeatureLimitsSchema),
+  instance: nativeInstanceSchema.nullable().default(null),
   startup: z.string().min(1).max(8192),
   image: z.string().min(2).max(255),
   labels: z.record(z.string(), z.string()),

@@ -153,7 +153,14 @@ export default function ServerUpdate({ contextServer }: { contextServer: AdminSe
               title={t('pages.admin.servers.tabs.general.page.card.serverAssignment', {})}
               icon={<FontAwesomeIcon icon={faAddressCard} />}
             >
-              <FormEngine form={form} fields={serverAssignmentFields} />
+              <FormEngine
+                form={form}
+                fields={
+                  contextServer.instance
+                    ? serverAssignmentFields.filter((field) => !['eggUuid', '_nestSelect'].includes(field.name))
+                    : serverAssignmentFields
+                }
+              />
             </TitleCard>
 
             <TitleCard
@@ -167,7 +174,14 @@ export default function ServerUpdate({ contextServer }: { contextServer: AdminSe
               title={t('pages.admin.servers.tabs.general.page.card.serverConfiguration', {})}
               icon={<FontAwesomeIcon icon={faWrench} />}
             >
-              <FormEngine form={form} fields={serverConfigFields} />
+              {contextServer.instance ? (
+                <Alert color='blue' title='Operating system'>
+                  {contextServer.instance.kind === 'virtual_machine' ? 'Virtual machine' : 'System container'}:{' '}
+                  {contextServer.instance.image}
+                </Alert>
+              ) : (
+                <FormEngine form={form} fields={serverConfigFields} />
+              )}
             </TitleCard>
 
             <TitleCard

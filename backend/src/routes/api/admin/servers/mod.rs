@@ -104,11 +104,14 @@ mod post {
     #[derive(ToSchema, Validate, Deserialize)]
     pub struct Payload {
         #[garde(skip)]
+        #[serde(default)]
+        instance: Option<wings_api::NativeInstance>,
+        #[garde(skip)]
         node_uuid: uuid::Uuid,
         #[garde(skip)]
         owner_uuid: uuid::Uuid,
         #[garde(skip)]
-        egg_uuid: uuid::Uuid,
+        egg_uuid: Option<uuid::Uuid>,
         #[garde(skip)]
         backup_configuration_uuid: Option<uuid::Uuid>,
 
@@ -187,7 +190,16 @@ mod post {
 
         permissions.has_admin_permission("servers.create")?;
 
-        let variables = NestEggVariable::all_by_egg_uuid(&state.database, data.egg_uuid).await?;
+        let egg_uuid = match (data.egg_uuid, data.instance.as_ref()) {
+            (_, Some(_)) => uuid::uuid!("7f9047ea-14c8-4f8f-a1de-f267ea740111"),
+            (Some(egg), None) => egg,
+            (None, None) => {
+                return ApiResponse::error("an egg is required for application servers")
+                    .with_status(StatusCode::BAD_REQUEST)
+                    .ok();
+            }
+        };
+        let variables = NestEggVariable::all_by_egg_uuid(&state.database, egg_uuid).await?;
 
         let mut validator_variables = HashMap::new();
         validator_variables.reserve(variables.len());
@@ -243,7 +255,8 @@ mod post {
         let options = shared::models::server::CreateServerOptions {
             node_uuid: data.node_uuid,
             owner_uuid: data.owner_uuid,
-            egg_uuid: data.egg_uuid,
+            egg_uuid,
+            instance: data.instance,
             backup_configuration_uuid: data.backup_configuration_uuid,
             allocation_uuid: data.allocation_uuid,
             allocation_uuids: data.allocation_uuids.clone(),

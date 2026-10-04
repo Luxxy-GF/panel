@@ -1090,6 +1090,7 @@ export const serversTable = pgTable(
     io_weight: smallint(),
     cpu: integer().notNull(),
     pinned_cpus: smallint().array().notNull(),
+    native_instance: json(),
     startup: text().notNull(),
     image: varchar({ length: 255 }).notNull(),
     labels: json().default({}).notNull(),

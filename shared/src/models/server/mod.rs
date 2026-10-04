@@ -136,6 +136,12 @@ impl From<ServerAutoStartBehavior> for wings_api::ServerAutoStartBehavior {
 
 pub const MAX_TRANSFER_MULTIPLEX_CHANNELS: u64 = 16;
 
+fn native_instance_error(message: &'static str) -> crate::database::DatabaseError {
+    let mut report = garde::Report::new();
+    report.append(garde::Path::new("instance"), garde::Error::new(message));
+    report.into()
+}
+
 #[derive(Clone, Default)]
 pub struct ServerInstallOptions {
     pub truncate_directory: bool,
@@ -184,6 +190,7 @@ pub struct Server {
     pub cpu: i32,
     pub pinned_cpus: Vec<i16>,
 
+    pub instance: Option<wings_api::NativeInstance>,
     pub startup: compact_str::CompactString,
     pub image: compact_str::CompactString,
     pub labels: IndexMap<compact_str::CompactString, compact_str::CompactString>,
@@ -260,6 +267,10 @@ impl BaseModel for Server {
             (
                 "servers.suspended",
                 compact_str::format_compact!("{prefix}suspended"),
+            ),
+            (
+                "servers.native_instance",
+                compact_str::format_compact!("{prefix}native_instance"),
             ),
             ("servers.name", compact_str::format_compact!("{prefix}name")),
             (
@@ -405,6 +416,12 @@ impl BaseModel for Server {
             cpu: row.try_get(compact_str::format_compact!("{prefix}cpu").as_str())?,
             pinned_cpus: row
                 .try_get(compact_str::format_compact!("{prefix}pinned_cpus").as_str())?,
+            instance: row
+                .try_get::<Option<serde_json::Value>, _>(
+                    compact_str::format_compact!("{prefix}native_instance").as_str(),
+                )?
+                .map(serde_json::from_value)
+                .transpose()?,
             startup: row.try_get(compact_str::format_compact!("{prefix}startup").as_str())?,
             image: row.try_get(compact_str::format_compact!("{prefix}image").as_str())?,
             labels: serde_json::from_value(row.try_get::<serde_json::Value, _>(
@@ -2024,6 +2041,7 @@ impl Server {
         Ok(RemoteApiServer {
             settings: wings_api::ServerConfiguration {
                 uuid: self.uuid,
+                instance: self.instance.clone(),
                 start_on_completion: None,
                 meta: wings_api::ServerConfigurationMeta {
                     name: self.name,
@@ -2032,7 +2050,7 @@ impl Server {
                 suspended: self.suspended,
                 invocation: self.startup,
                 entrypoint: None,
-                skip_egg_scripts: false,
+                skip_egg_scripts: self.instance.is_some(),
                 environment: variables
                     .into_iter()
                     .map(|v| {
@@ -2245,6 +2263,7 @@ impl super::IntoAdminApiObject for Server {
                 },
                 pinned_cpus: self.pinned_cpus,
                 feature_limits,
+                instance: self.instance.clone(),
                 startup: self.startup,
                 image: self.image,
                 labels: self.labels,
@@ -2339,6 +2358,7 @@ impl super::IntoApiObject for Server {
                     disk: self.disk,
                 },
                 feature_limits,
+                instance: self.instance.clone(),
                 startup: self.startup,
                 image: self.image,
                 auto_kill: self.auto_kill,
@@ -2409,6 +2429,9 @@ impl ByUuid for Server {
 
 #[derive(ToSchema, Validate, Deserialize)]
 pub struct CreateServerOptions {
+    #[garde(skip)]
+    #[serde(default)]
+    pub instance: Option<wings_api::NativeInstance>,
     #[garde(skip)]
     pub node_uuid: uuid::Uuid,
     #[garde(skip)]
@@ -2497,6 +2520,49 @@ impl CreatableModel for Server {
             .await?
             .ok_or(crate::database::InvalidRelationError("node"))?;
 
+        if let Some(instance) = &options.instance {
+            let runtime = node
+                .api_client(&state.database)
+                .await?
+                .get_system()
+                .await?
+                .runtime
+                .ok_or_else(|| {
+                    native_instance_error("node does not report native instance support")
+                })?;
+            if runtime.backend != "incus" || !runtime.system_containers {
+                return Err(native_instance_error("OS instances require an Incus node"));
+            }
+            if instance.kind == wings_api::NativeInstanceType::VirtualMachine
+                && !runtime.virtual_machines
+            {
+                return Err(native_instance_error(
+                    "selected node does not support virtual machines",
+                ));
+            }
+            if options.limits.disk <= 0 {
+                return Err(native_instance_error(
+                    "OS instances require a positive disk size",
+                ));
+            }
+            if instance.kind == wings_api::NativeInstanceType::VirtualMachine
+                && options.limits.memory < 256
+            {
+                return Err(native_instance_error(
+                    "virtual machines require at least 256 MiB of memory",
+                ));
+            }
+            if instance.image.is_empty()
+                || instance.image.len() > 255
+                || instance.image.bytes().any(|byte| byte.is_ascii_control())
+            {
+                return Err(native_instance_error("invalid OS image alias"));
+            }
+            options.image = instance.image.clone().into();
+            options.skip_installer = true;
+            options.variables.clear();
+        }
+
         super::user::User::by_uuid_optional(&state.database, options.owner_uuid)
             .await?
             .ok_or(crate::database::InvalidRelationError("owner"))?;
@@ -2556,6 +2622,14 @@ impl CreatableModel for Server {
                 .set("io_weight", options.limits.io_weight)
                 .set("cpu", options.limits.cpu)
                 .set("pinned_cpus", &options.pinned_cpus)
+                .set(
+                    "native_instance",
+                    options
+                        .instance
+                        .as_ref()
+                        .map(serde_json::to_value)
+                        .transpose()?,
+                )
                 .set("startup", &options.startup)
                 .set("image", &options.image)
                 .set("labels", OrderedJson(&options.labels))
@@ -2824,6 +2898,22 @@ impl UpdatableModel for Server {
         transaction: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     ) -> Result<(), crate::database::DatabaseError> {
         options.validate()?;
+        if self.instance.is_some() {
+            if options
+                .image
+                .as_ref()
+                .is_some_and(|image| image != &self.image)
+            {
+                return Err(native_instance_error(
+                    "changing a native OS image requires recreating the server",
+                ));
+            }
+            if options.egg_uuid.is_some_and(|egg| egg != self.egg.uuid) {
+                return Err(native_instance_error(
+                    "native OS instances use the built-in OS template",
+                ));
+            }
+        }
 
         let owner = if let Some(owner_uuid) = options.owner_uuid {
             Some(
@@ -3228,6 +3318,7 @@ pub struct AdminApiServer {
     #[schema(inline)]
     pub feature_limits: ApiServerFeatureLimits,
 
+    pub instance: Option<wings_api::NativeInstance>,
     pub startup: compact_str::CompactString,
     pub image: compact_str::CompactString,
     pub labels: IndexMap<compact_str::CompactString, compact_str::CompactString>,
@@ -3280,6 +3371,7 @@ pub struct ApiServer {
     #[schema(inline)]
     pub feature_limits: ApiServerFeatureLimits,
 
+    pub instance: Option<wings_api::NativeInstance>,
     pub startup: compact_str::CompactString,
     pub image: compact_str::CompactString,
     #[schema(inline)]

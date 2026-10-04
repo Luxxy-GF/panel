@@ -17,6 +17,27 @@ pub mod tunnel;
 use client::{AsyncRequestReader, AsyncResponseReader};
 pub use extra::*;
 
+#[derive(Debug, ToSchema, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum NativeInstanceType {
+    Container,
+    VirtualMachine,
+}
+
+#[derive(Debug, ToSchema, Deserialize, Serialize, Clone, PartialEq, Eq)]
+pub struct NativeInstance {
+    pub kind: NativeInstanceType,
+    pub image: String,
+}
+
+#[derive(Debug, ToSchema, Deserialize, Serialize, Clone)]
+pub struct RuntimeCapabilities {
+    pub backend: String,
+    pub system_containers: bool,
+    pub virtual_machines: bool,
+    pub image_server: Option<String>,
+}
+
 nestify::nest! {
     #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct ApiError {
         #[schema(inline)]
@@ -515,6 +536,8 @@ pub enum ServerAutoStartBehavior {
 
 nestify::nest! {
     #[derive(Debug, ToSchema, Deserialize, Serialize, Clone)] pub struct ServerConfiguration {
+        #[serde(default)]
+        pub instance: Option<NativeInstance>,
         #[schema(inline)]
         pub uuid: uuid::Uuid,
         #[schema(inline)]
@@ -2772,6 +2795,8 @@ pub mod system {
                 pub os: compact_str::CompactString,
                 #[schema(inline)]
                 pub version: compact_str::CompactString,
+                #[serde(default)]
+                pub runtime: Option<RuntimeCapabilities>,
             }
         }
 
