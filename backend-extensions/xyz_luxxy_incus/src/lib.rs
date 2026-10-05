@@ -9,6 +9,7 @@ use shared::{
 use utoipa_axum::routes;
 
 mod model;
+mod pools;
 mod routes;
 
 #[derive(Default)]
@@ -25,6 +26,10 @@ impl Extension for ExtensionStruct {
                 )
             },
             |_server, data, _state| model::ApiMetadata {
+                incus_address: data
+                    .instance
+                    .as_ref()
+                    .and_then(|instance| instance.network.as_ref().map(|network| network.address)),
                 incus_instance: data.instance.map(model::NativeInstance::without_config),
             },
         );
@@ -35,15 +40,32 @@ impl Extension for ExtensionStruct {
                 )
             },
             |_server, data, _state| model::ApiMetadata {
+                incus_address: data
+                    .instance
+                    .as_ref()
+                    .and_then(|instance| instance.network.as_ref().map(|network| network.address)),
                 incus_instance: data.instance,
             },
         );
         Server::register_create_handler(
             ListenerPriority::Normal,
-            |options, builder, _state, _transaction| {
+            |options, builder, _state, transaction| {
                 Box::pin(async move {
-                    if let Ok(instance) = model::CREATING_INSTANCE.try_with(Clone::clone) {
-                        instance.validate()?;
+                    if let Ok(mut instance) = model::CREATING_INSTANCE.try_with(Clone::clone) {
+                        if let Some(request) = model::CREATING_NETWORK
+                            .try_with(Clone::clone)
+                            .ok()
+                            .flatten()
+                        {
+                            instance.network = Some(
+                                pools::reserve(transaction, options.node_uuid, &request).await?,
+                            );
+                        }
+                        instance.validate().map_err(|error| {
+                            anyhow::Error::from(shared::response::DisplayError::new(
+                                error.to_string(),
+                            ))
+                        })?;
                         model::require(
                             options.egg_uuid == model::OS_EGG,
                             "native instances require the OS template",
@@ -59,6 +81,21 @@ impl Extension for ExtensionStruct {
                 })
             },
         );
+        Server::register_after_create_handler(
+            ListenerPriority::Normal,
+            |server, _options, _state, transaction| {
+                Box::pin(async move {
+                    if let Some(network) = server
+                        .parse_model_extension::<model::ServerExtension>()?
+                        .instance
+                        .and_then(|instance| instance.network)
+                    {
+                        pools::bind(transaction, server.uuid, &network).await?;
+                    }
+                    Ok(())
+                })
+            },
+        );
         Server::register_update_handler(
             ListenerPriority::Normal,
             |server, options, builder, _state, _transaction| {
@@ -68,8 +105,10 @@ impl Extension for ExtensionStruct {
                         if let Ok(next) = model::UPDATING_INSTANCE.try_with(Clone::clone) {
                             next.validate()?;
                             model::require(
-                                next.kind == instance.kind && next.image == instance.image,
-                                "changing instance type or image requires a new server",
+                                next.kind == instance.kind
+                                    && next.image == instance.image
+                                    && next.network == instance.network,
+                                "changing instance type, image, or network requires a new server",
                             )?;
                             builder.set(
                                 "xyz_luxxy_incus_instance",
@@ -119,6 +158,12 @@ impl Extension for ExtensionStruct {
             .add_admin_api_router(|router| {
                 router
                     .routes(routes!(routes::create::route))
+                    .routes(routes!(pools::list::route))
+                    .routes(routes!(pools::addresses::route))
+                    .routes(routes!(pools::network::route))
+                    .routes(routes!(pools::create::route))
+                    .routes(routes!(pools::delete::route))
+                    .routes(routes!(pools::reconcile::route))
                     .routes(routes!(routes::runtime::route))
                     .routes(routes!(routes::images::route))
                     .routes(routes!(routes::admin_metadata::route))

@@ -1,11 +1,16 @@
 import OriginalCreate from '@/api/admin/servers/createServer.ts';
 import OriginalUpdateApi from '@/api/admin/servers/updateServer.ts';
+import OriginalStatCard from '@/elements/data-display/StatCard.tsx';
 import OriginalTitleCard from '@/elements/data-display/TitleCard.tsx';
+import OriginalConfirmation from '@/elements/modals/ConfirmationModal.tsx';
 import OriginalCreatePage from '@/pages/admin/servers/ServerCreate.tsx';
 import OriginalUpdate from '@/pages/admin/servers/ServerUpdate.tsx';
+import OriginalDetails from '@/pages/server/console/stats/ServerDetails.tsx';
 import OriginalTerminal from '@/pages/server/console/terminal/Console.tsx';
 import ConfigurationCard from './ConfigurationCard.tsx';
 import Create from './createServer.ts';
+import DirectDetails, { DirectStatCard } from './DirectDetails.tsx';
+import PoolConfirmation from './PoolConfirmation.tsx';
 import CreatePage from './ServerCreate.tsx';
 import Update from './ServerUpdate.tsx';
 import Terminal from './Terminal.tsx';
@@ -16,6 +21,9 @@ function defineOverride<T>(original: T, replacement: NoInfer<T>) {
 }
 
 export default [
+  defineOverride(OriginalConfirmation, PoolConfirmation),
+  defineOverride(OriginalDetails, DirectDetails),
+  defineOverride(OriginalStatCard, DirectStatCard),
   defineOverride(OriginalCreatePage, CreatePage),
   defineOverride(OriginalTitleCard, ConfigurationCard),
   defineOverride(OriginalUpdateApi, UpdateApi),

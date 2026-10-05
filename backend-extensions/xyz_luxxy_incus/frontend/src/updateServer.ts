@@ -14,6 +14,7 @@ const updateServer: typeof originalUpdateServer = async (uuid, values) => {
     formExtensionSchemas('admin.servers.update'),
   ) as Record<string, unknown>;
   delete payload.incus_instance;
+  delete payload.incus_network_request;
   payload.instance = incusInstance;
   await axiosInstance.patch(`/api/admin/incus/servers/${uuid}`, payload);
 };

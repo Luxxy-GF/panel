@@ -44,3 +44,19 @@ The normal resource controls own `limits.cpu`, `limits.cpu.allowance`, `limits.m
 Full configuration is available only through admin and authenticated node metadata. Client responses include instance type and image without configuration values. Update both the panel extension and Wings before using these controls.
 
 The catalog descriptions are derived from Incus v7.0.1 `internal/server/metadata/configuration.json`, under the Apache 2.0 license reproduced in `LICENSE.incus`. The metadata was narrowed to native instance options and annotated with Wings-managed settings. Reference: https://linuxcontainers.org/incus/docs/stable-7.0/reference/instance_options/.
+
+## External IPv4 pools
+
+Node management includes an **IP Pools** tab. Create a pool with the host parent NIC or bond, an optional VLAN ID, subnet, assignable address range, gateway, and DNS servers. Optional MTU, GVRP, and macvlan mode controls map to Incus NIC settings. Pool ranges cannot overlap on a node. Pool definitions are immutable; delete an empty pool to replace its settings.
+
+When creating an OS container or VM, select the pool under **Networking**. Leave the IPv4 input empty to reserve the next free address, or request a specific address from that pool. A provider-assigned unicast MAC is optional. A one-address pool supports a custom or routed /32 address; enable **Gateway is on-link** when the gateway is outside the subnet. Reservations are made inside the server transaction, and duplicate addresses or custom MACs are rejected.
+
+Containers use macvlan and VMs use macvtap on the parent interface. These interfaces do not require an Incus managed bridge and do not create NAT or port forwards. To run a node exclusively with direct IP pools, set `runtime.incus.bridge_enabled: false` in Wings. The default remains `true` for nodes that also host application containers or native instances using port allocations.
+
+Wings configures static IPv4 networking inside Linux guests using their NIC MAC address, persists it for systemd or OpenRC, and reapplies it at startup. The guest needs iproute2. VM setup requires the Incus agent. Cloud-init network overrides cannot be combined with a pool. The assigned address appears in the server console; parent-interface and pool configuration remain admin-only.
+
+The upstream network must permit guest MAC addresses and the selected VLAN. Macvlan/macvtap prevent direct host-to-guest communication. Wings' host firewall and Tundra private networking do not govern these interfaces; configure a guest or upstream firewall. Existing instance network selection is immutable. Native transfer and backup support is unchanged.
+
+Deleting a server keeps its IP and custom MAC reserved until **Reconcile deleted instances** verifies both panel deletion and absence from the node's Incus inventory. A failed inventory request releases nothing. Pools with reserved addresses cannot be deleted or uninstalled, and a node with pools cannot be deleted until its pools are cleared.
+
+Reference: https://linuxcontainers.org/incus/docs/stable-7.0/reference/network_macvlan/.

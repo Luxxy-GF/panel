@@ -22,6 +22,8 @@ pub struct RuntimeCapabilities {
     pub image_server: Option<String>,
     #[serde(default)]
     pub panel_extension: bool,
+    #[serde(default)]
+    pub direct_networking: bool,
 }
 
 #[derive(Deserialize)]
@@ -135,6 +137,9 @@ pub mod create {
     pub struct Payload {
         #[garde(skip)]
         pub instance: NativeInstance,
+        #[serde(default)]
+        #[garde(skip)]
+        pub network: Option<crate::pools::NetworkRequest>,
         #[serde(flatten)]
         #[garde(dive)]
         pub options: CreateServerOptions,
@@ -154,6 +159,11 @@ pub mod create {
         shared::Payload(mut data): shared::Payload<Payload>,
     ) -> ApiResponseResult {
         permissions.has_admin_permission("servers.create")?;
+        if data.instance.network.is_some() {
+            return ApiResponse::error("select external networking through a node IP pool")
+                .with_status(StatusCode::BAD_REQUEST)
+                .ok();
+        }
         if let Err(error) = data.instance.validate() {
             return ApiResponse::error(error.to_string())
                 .with_status(StatusCode::BAD_REQUEST)
@@ -194,9 +204,21 @@ pub mod create {
         data.options.variables.clear();
         data.options.hugepages_passthrough_enabled = false;
         data.options.kvm_passthrough_enabled = false;
+        if data.network.is_some() {
+            let runtime = node_runtime(&state, &node).await?;
+            if !runtime.is_some_and(|runtime| runtime.direct_networking) {
+                return ApiResponse::error("update Wings to enable direct networking")
+                    .with_status(StatusCode::BAD_REQUEST)
+                    .ok();
+            }
+            data.options.allocation_uuid = None;
+            data.options.allocation_uuids.clear();
+        }
         let instance = data.instance;
-        let server = crate::model::CREATING_INSTANCE
-            .scope(instance.clone(), Server::create(&state, data.options))
+        let creation = crate::model::CREATING_INSTANCE
+            .scope(instance.clone(), Server::create(&state, data.options));
+        let server = crate::model::CREATING_NETWORK
+            .scope(data.network, creation)
             .await?;
         activity.log("server:create", serde_json::json!({"uuid":server.uuid,"extension":"xyz.luxxy.incus","instance_kind":instance.kind,"image":instance.image})).await;
         let value = serde_json::to_value(
@@ -258,8 +280,11 @@ pub mod update {
                 .with_status(StatusCode::BAD_REQUEST)
                 .ok();
         };
-        if existing.kind != data.instance.kind || existing.image != data.instance.image {
-            return ApiResponse::error("changing instance type or image requires a new server")
+        if existing.kind != data.instance.kind
+            || existing.image != data.instance.image
+            || existing.network != data.instance.network
+        {
+            return ApiResponse::error("changing instance type, image, or network requires a new server")
                 .with_status(StatusCode::BAD_REQUEST)
                 .ok();
         }

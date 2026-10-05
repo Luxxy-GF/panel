@@ -8,6 +8,7 @@ import Stack from '@/elements/layout/Stack.tsx';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { getNodeImages, getNodeRuntime, imageSchema, type NativeInstance, runtimeSchema } from './api.ts';
 import { useConfigurationForm } from './ConfigurationScope.tsx';
+import NetworkControls from './NetworkControls.tsx';
 
 export const EditingInstance = createContext<NativeInstance | null>(null);
 export type InstanceForm = UseFormReturnType<Record<string, unknown>>;
@@ -34,6 +35,7 @@ export default function InstanceControls({ form, editing = false }: { form: Inst
     let active = true;
     setRuntime(null);
     setImages([]);
+    form.setFieldValue('incusNetworkRequest', null);
     if (form.getValues().incusInstance) {
       form.setFieldValue('incusInstance', null);
       form.setFieldValue('eggUuid', '');
@@ -69,6 +71,8 @@ export default function InstanceControls({ form, editing = false }: { form: Inst
       <Alert>
         Native {existing.kind === 'virtual_machine' ? 'virtual machine' : 'OS container'} · {existing.image}. Changing
         the instance type or image requires a new server.
+        {existing.network &&
+          ` Network: ${existing.network.address}/${existing.network.prefix} on ${existing.network.parent}${existing.network.vlan ? `, VLAN ${existing.network.vlan}` : ''}.`}
       </Alert>
     ) : null;
   if (runtime?.backend !== 'incus') return null;
@@ -76,7 +80,8 @@ export default function InstanceControls({ form, editing = false }: { form: Inst
     return <Alert>Enable runtime.incus.panel_extension in Wings and restart the daemon to create OS instances.</Alert>;
 
   const chooseKind = (kind: 'application' | NativeInstance['kind']) => {
-    const next = kind === 'application' ? null : { kind, image: '', config: {} };
+    const next = kind === 'application' ? null : { kind, image: '', config: {}, network: null };
+    form.setFieldValue('incusNetworkRequest', null);
     setInstance(next);
     form.setFieldValue('incusInstance', next);
     form.setFieldValue('eggUuid', next ? '7f9047ea-14c8-4f8f-a1de-f267ea740111' : '');
@@ -133,6 +138,7 @@ export default function InstanceControls({ form, editing = false }: { form: Inst
           }}
         />
       )}
+      {instance && <NetworkControls form={form} node={node} enabled={runtime.directNetworking} />}
     </Stack>
   );
 }
