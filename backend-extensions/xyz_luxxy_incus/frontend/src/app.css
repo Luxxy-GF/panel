@@ -1,0 +1,4 @@
+.native-terminal .xterm-cursor-layer {
+  display: block !important;
+  opacity: 1 !important;
+}

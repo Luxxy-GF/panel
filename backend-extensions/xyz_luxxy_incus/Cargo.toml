@@ -1,0 +1,23 @@
+[package]
+name = "xyz_luxxy_incus"
+description = "Native Incus system containers, virtual machines and interactive terminals"
+authors = ["Luxxy"]
+version = "0.1.0"
+edition = { workspace = true }
+
+[dependencies]
+shared = { workspace = true }
+async-trait = { workspace = true }
+anyhow = { workspace = true }
+axum = { workspace = true }
+garde = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sqlx = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+uuid = { workspace = true }
+utoipa = { workspace = true }
+utoipa-axum = { workspace = true }
+compact_str = { workspace = true }
+tracing = { workspace = true }
