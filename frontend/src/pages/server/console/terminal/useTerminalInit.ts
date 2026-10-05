@@ -6,6 +6,7 @@ import { ITerminalInitOnlyOptions, ITerminalOptions, Terminal as XTerm } from '@
 import { RefObject, useCallback, useEffect, useRef, useState } from 'react';
 import { handleRawCopyToClipboard } from '@/lib/clipboard/copy.ts';
 import { getCellHeight, getXtermTheme } from '@/lib/editor/xterm.ts';
+import { redactConsoleLine } from '@/lib/network/redact.ts';
 import { eventKeyMatches } from '@/lib/quickActions/shortcuts.ts';
 import type { AddToast } from '@/providers/contexts/toastContext.ts';
 
@@ -18,6 +19,7 @@ interface UseTerminalInitOptions {
   initialIsDark: boolean;
   fontSize: number;
   isDark: boolean;
+  native: boolean;
 }
 
 export function useTerminalInit({
@@ -29,8 +31,11 @@ export function useTerminalInit({
   initialIsDark,
   fontSize,
   isDark,
+  native,
 }: UseTerminalInitOptions) {
   const xtermInstance = useRef<XTerm | null>(null);
+  const terminalDecoder = useRef(new TextDecoder());
+  const redactionPending = useRef('');
   const fitAddonRef = useRef<FitAddon | null>(null);
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const updateSelectionMenuRef = useRef<() => void>(() => void 0);
@@ -46,7 +51,7 @@ export function useTerminalInit({
       allowTransparency: true,
       lineHeight: 1.2,
       disableStdin: true,
-      convertEol: true,
+      convertEol: !native,
       smoothScrollDuration: 0,
       allowProposedApi: true,
       fontWeightBold: '500',
@@ -84,8 +89,7 @@ export function useTerminalInit({
       handler(term, {});
     }
 
-    // prevent cursor
-    term.write('\x1b[?25l');
+    if (!native) term.write('\x1b[?25l');
 
     document.fonts.ready.then(() => {
       if (fitAddonRef.current) {
@@ -164,7 +168,7 @@ export function useTerminalInit({
         handler(term, {});
       }
     };
-  }, []);
+  }, [native]);
 
   useEffect(() => {
     if (xtermInstance.current) {
@@ -185,7 +189,21 @@ export function useTerminalInit({
   const resetTerminal = useCallback(() => {
     if (!xtermInstance.current) return false;
     xtermInstance.current.reset();
+    terminalDecoder.current = new TextDecoder();
+    redactionPending.current = '';
     return true;
+  }, []);
+
+  const writeTerminal = useCallback((data: string, redact = false) => {
+    const bytes = Uint8Array.from(atob(data), (char) => char.charCodeAt(0));
+    if (redact) {
+      const text = redactionPending.current + terminalDecoder.current.decode(bytes, { stream: true });
+      const pending = text.match(/[0-9a-f:.]{1,64}$/i)?.[0] ?? '';
+      redactionPending.current = pending;
+      xtermInstance.current?.write(redactConsoleLine(text.slice(0, text.length - pending.length)));
+    } else {
+      xtermInstance.current?.write(bytes);
+    }
   }, []);
 
   const scrollToBottom = useCallback(() => {
@@ -221,5 +239,6 @@ export function useTerminalInit({
     hasSelection,
     copySelection,
     writeLine,
+    writeTerminal,
   };
 }

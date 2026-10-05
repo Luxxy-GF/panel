@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { adminServerFeatureLimitsSchema } from '@/lib/schemas/admin/servers.ts';
+import { adminServerFeatureLimitsSchema, nativeInstanceSchema } from '@/lib/schemas/admin/servers.ts';
 import { serverAllocationSchema } from '@/lib/schemas/server/allocations.ts';
 import { eggConfigurationRouteItemSchema } from '../generic.ts';
 
@@ -39,6 +39,10 @@ export const serverEggConfigurationSchema = z.looseObject({
 });
 
 export const serverSchema = z.looseObject({
+  instance: z
+    .lazy(() => nativeInstanceSchema)
+    .nullable()
+    .default(null),
   uuid: z.string(),
   uuidShort: z.string(),
   allocation: z.lazy(() => serverAllocationSchema).nullable(),

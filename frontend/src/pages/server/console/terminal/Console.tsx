@@ -22,6 +22,7 @@ import { useUserSetting } from '@/lib/userSettings.ts';
 import { useRedactAddresses } from '@/plugins/privacy/useRedactAddresses.ts';
 import { matchesShortcut, useKeyboardShortcut } from '@/plugins/quick-actions/useKeyboardShortcuts.ts';
 import { useQuickActions } from '@/plugins/quick-actions/useQuickActions.ts';
+import { useServerCan } from '@/plugins/usePermissions.ts';
 import { SocketEvent, SocketRequest } from '@/plugins/websocket/useWebsocketEvent.ts';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { useTranslations } from '@/providers/TranslationProvider.tsx';
@@ -53,6 +54,9 @@ export default function Terminal({ popout = false }: { popout?: boolean }) {
     })),
   );
   const settings = useGlobalStore((state) => state.settings);
+  const nativeTerminal = server.instance !== null;
+  const canWriteConsole = useServerCan('control.console');
+  const serverState = useServerStore((state) => state.state);
   const computedColorScheme = useComputedColorScheme('dark');
 
   const [inputValue, setInputValue] = useState('');
@@ -70,6 +74,7 @@ export default function Terminal({ popout = false }: { popout?: boolean }) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const touchSelectionRef = useRef(false);
   const isFirstLine = useRef(true);
+  const terminalSizeSent = useRef(false);
 
   const commandHistory = useCommandHistory(server.uuid);
 
@@ -83,6 +88,7 @@ export default function Terminal({ popout = false }: { popout?: boolean }) {
     hasSelection,
     copySelection,
     writeLine,
+    writeTerminal,
   } = useTerminalInit({
     terminalRef,
     touchSelectionRef,
@@ -92,7 +98,28 @@ export default function Terminal({ popout = false }: { popout?: boolean }) {
     initialIsDark: computedColorScheme === 'dark',
     fontSize: consoleFontSize,
     isDark: computedColorScheme === 'dark',
+    native: nativeTerminal,
   });
+
+  useEffect(() => {
+    const term = xtermInstance.current;
+    if (!term || !nativeTerminal || !socketConnected || !socketInstance) return;
+    const canType = canWriteConsole && (serverState === 'running' || serverState === 'starting');
+    term.options.disableStdin = !canType;
+    const input = term.onData((data) => {
+      if (canType) socketInstance.send(SocketRequest.TERMINAL_INPUT, data);
+    });
+    const sendSize = () => socketInstance.send(SocketRequest.TERMINAL_RESIZE, [String(term.cols), String(term.rows)]);
+    const resize = term.onResize(sendSize);
+    socketInstance.addListener(SocketEvent.STATUS, sendSize);
+    sendSize();
+    return () => {
+      term.options.disableStdin = true;
+      input.dispose();
+      resize.dispose();
+      socketInstance.removeListener(SocketEvent.STATUS, sendSize);
+    };
+  }, [nativeTerminal, canWriteConsole, serverState, socketConnected, socketInstance, xtermInstance]);
 
   useTerminalTouchScroll({
     terminalRef,
@@ -163,7 +190,7 @@ export default function Terminal({ popout = false }: { popout?: boolean }) {
 
   const addLine = useCallback(
     (text: string, prelude = false) => {
-      let processed = text.replaceAll('\x1b[?25h', '').replaceAll('\x1b[?25l', '');
+      let processed = nativeTerminal ? text : text.replaceAll('\x1b[?25h', '').replaceAll('\x1b[?25l', '');
 
       if (redactAddressesRef.current) {
         processed = redactConsoleLine(processed);
@@ -177,11 +204,12 @@ export default function Terminal({ popout = false }: { popout?: boolean }) {
         processed = `\x1b[1m\x1b[33m${containerPreludeRef.current} \x1b[0m${processed}`;
       }
 
-      if (writeLine(processed, isFirstLine.current)) {
+      if (nativeTerminal) processed = `\r\n${processed}\r\n`;
+      if (writeLine(processed, nativeTerminal || isFirstLine.current)) {
         isFirstLine.current = false;
       }
     },
-    [writeLine],
+    [writeLine, nativeTerminal],
   );
 
   useEffect(() => {
@@ -207,6 +235,15 @@ export default function Terminal({ popout = false }: { popout?: boolean }) {
         );
       },
       [SocketEvent.CONSOLE_OUTPUT]: (l) => addLine(l),
+      [SocketEvent.TERMINAL_OUTPUT]: (data) => {
+        if (!nativeTerminal) return;
+        if (!terminalSizeSent.current) {
+          const term = xtermInstance.current;
+          if (term) socketInstance.send(SocketRequest.TERMINAL_RESIZE, [String(term.cols), String(term.rows)]);
+          terminalSizeSent.current = true;
+        }
+        writeTerminal(data, redactAddressesRef.current);
+      },
       [SocketEvent.INSTALL_OUTPUT]: (l) => addLine(l),
       [SocketEvent.INSTALL_COMPLETED]: (s) => {
         if (s === 'false') addLine(t('pages.server.console.message.installFailed', {}), true);
@@ -221,13 +258,14 @@ export default function Terminal({ popout = false }: { popout?: boolean }) {
       [SocketEvent.DAEMON_ERROR]: (l) => addLine(`[1m[41m${l}[0m`, true),
     };
 
+    terminalSizeSent.current = false;
     Object.entries(listeners).forEach(([k, fn]) => socketInstance.addListener(k, fn));
     socketInstance.send(SocketRequest.SEND_LOGS);
 
     return () => {
       Object.entries(listeners).forEach(([k, fn]) => socketInstance.removeListener(k, fn));
     };
-  }, [socketConnected, socketInstance, resetTerminal, addLine, t]);
+  }, [socketConnected, socketInstance, resetTerminal, addLine, t, nativeTerminal, writeTerminal, xtermInstance]);
 
   useEffect(() => {
     if (!openModal) {
@@ -258,17 +296,17 @@ export default function Terminal({ popout = false }: { popout?: boolean }) {
         }
 
         if (e.key === 'Enter') {
-          const command = inputValueRef.current.trim();
-          if (!command) return;
+          const command = nativeTerminal ? inputValueRef.current : inputValueRef.current.trim();
+          if (!command && !nativeTerminal) return;
 
-          commandHistory.recordCommand(command);
+          if (command) commandHistory.recordCommand(command);
           socketInstance?.send(SocketRequest.SEND_COMMAND, commandPrefix + command);
           setInputValue('');
           inputValueRef.current = '';
         }
       });
     },
-    [commandHistory, socketInstance, commandPrefix],
+    [commandHistory, socketInstance, commandPrefix, nativeTerminal],
   );
 
   useKeyboardShortcut(
@@ -398,7 +436,7 @@ export default function Terminal({ popout = false }: { popout?: boolean }) {
         {!socketConnected && <Spinner.Centered />}
 
         <div className='flex-1 min-h-0 relative overflow-hidden'>
-          <div ref={terminalRef} className='absolute inset-0' />
+          <div ref={terminalRef} className={`absolute inset-0${nativeTerminal ? ' native-terminal' : ''}`} />
           {selectionMenuTop !== null && <TerminalSelectionMenu top={selectionMenuTop} onCopy={copySelection} />}
         </div>
 
