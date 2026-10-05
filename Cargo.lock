@@ -2590,6 +2590,7 @@ version = "1.2.4"
 dependencies = [
  "semver",
  "shared",
+ "xyz_luxxy_incus",
 ]
 
 [[package]]

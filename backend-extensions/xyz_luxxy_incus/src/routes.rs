@@ -198,13 +198,101 @@ pub mod create {
         let server = crate::model::CREATING_INSTANCE
             .scope(instance.clone(), Server::create(&state, data.options))
             .await?;
-        activity.log("server:create", serde_json::json!({"uuid":server.uuid,"extension":"xyz.luxxy.incus","instance":instance})).await;
+        activity.log("server:create", serde_json::json!({"uuid":server.uuid,"extension":"xyz.luxxy.incus","instance_kind":instance.kind,"image":instance.image})).await;
         let value = serde_json::to_value(
             server
                 .into_admin_api_object(&state, &state.storage.retrieve_urls().await?)
                 .await?,
         )?;
         ApiResponse::new_serialized(Response { server: value }).ok()
+    }
+}
+
+pub mod update {
+    use super::*;
+    use garde::Validate;
+    use shared::models::{
+        UpdatableModel, admin_activity::GetAdminActivityLogger, server::UpdateServerOptions,
+    };
+
+    #[derive(Deserialize, ToSchema, Validate)]
+    pub struct Payload {
+        #[garde(skip)]
+        pub instance: NativeInstance,
+        #[serde(flatten)]
+        #[garde(dive)]
+        pub options: UpdateServerOptions,
+    }
+
+    #[derive(Deserialize)]
+    struct ServerStatus {
+        state: String,
+    }
+
+    #[utoipa::path(patch, path = "/incus/servers/{server}", request_body = Payload,
+        responses((status = OK), (status = BAD_REQUEST), (status = CONFLICT)))]
+    pub async fn route(
+        state: GetState,
+        permissions: GetPermissionManager,
+        activity: GetAdminActivityLogger,
+        Path(uuid): Path<uuid::Uuid>,
+        shared::Payload(data): shared::Payload<Payload>,
+    ) -> ApiResponseResult {
+        permissions.has_admin_permission("servers.read")?;
+        permissions.has_admin_permission("servers.update")?;
+        if let Err(error) = data.instance.validate() {
+            return ApiResponse::error(error.to_string())
+                .with_status(StatusCode::BAD_REQUEST)
+                .ok();
+        }
+        if let Err(errors) = shared::utils::validate_data(&data) {
+            return ApiResponse::new_serialized(shared::ApiError::new_strings_value(errors))
+                .with_status(StatusCode::BAD_REQUEST)
+                .ok();
+        }
+        let mut server = Server::by_uuid_optional(&state.database, uuid)
+            .await?
+            .ok_or_else(|| anyhow::anyhow!("server not found"))?;
+        let Some(existing) = server.parse_model_extension::<ServerExtension>()?.instance else {
+            return ApiResponse::error("server is not a native Incus instance")
+                .with_status(StatusCode::BAD_REQUEST)
+                .ok();
+        };
+        if existing.kind != data.instance.kind || existing.image != data.instance.image {
+            return ApiResponse::error("changing instance type or image requires a new server")
+                .with_status(StatusCode::BAD_REQUEST)
+                .ok();
+        }
+        if existing.config != data.instance.config {
+            let node = server.node.fetch_cached(&state.database).await?;
+            let status = node
+                .api_client(&state.database)
+                .await?
+                .request_raw(reqwest::Method::GET, &format!("/api/servers/{uuid}"))
+                .header("Accept", "application/json")
+                .send()
+                .await?
+                .error_for_status()?
+                .json::<ServerStatus>()
+                .await?;
+            if status.state != "offline" {
+                return ApiResponse::error("stop the instance before changing Incus configuration")
+                    .with_status(StatusCode::CONFLICT)
+                    .ok();
+            }
+        }
+        let instance = data.instance;
+        crate::model::UPDATING_INSTANCE
+            .scope(instance, server.update(&state, data.options))
+            .await?;
+        activity
+            .log(
+                "server:update",
+                serde_json::json!({"uuid":uuid,"extension":"xyz.luxxy.incus"}),
+            )
+            .await;
+        server.sync(&state.database).await?;
+        ApiResponse::new_serialized(serde_json::json!({})).ok()
     }
 }
 
@@ -265,7 +353,10 @@ pub mod client_metadata {
     pub async fn route(server: GetServer, permissions: GetPermissionManager) -> ApiResponseResult {
         permissions.has_server_permission("control.read-console")?;
         ApiResponse::new_serialized(MetadataResponse {
-            instance: server.parse_model_extension::<ServerExtension>()?.instance,
+            instance: server
+                .parse_model_extension::<ServerExtension>()?
+                .instance
+                .map(NativeInstance::without_config),
         })
         .ok()
     }
@@ -300,7 +391,7 @@ pub mod remote_metadata {
                 .ok();
         }
         let rows = sqlx::query("SELECT uuid, xyz_luxxy_incus_instance FROM servers WHERE node_uuid = $1 AND uuid = ANY($2)")
-            .bind(node.uuid).bind(uuids.iter().copied().collect::<Vec<_>>()).fetch_all(state.database.read()).await?;
+            .bind(node.uuid).bind(uuids.iter().copied().collect::<Vec<_>>()).fetch_all(state.database.write()).await?;
         if rows.len() != uuids.len() {
             return ApiResponse::error("server not found on this node")
                 .with_status(StatusCode::NOT_FOUND)

@@ -7,11 +7,13 @@ import Select from '@/elements/input/Select.tsx';
 import Stack from '@/elements/layout/Stack.tsx';
 import { useToast } from '@/providers/ToastProvider.tsx';
 import { getNodeImages, getNodeRuntime, imageSchema, type NativeInstance, runtimeSchema } from './api.ts';
+import { useConfigurationForm } from './ConfigurationScope.tsx';
 
 export const EditingInstance = createContext<NativeInstance | null>(null);
 export type InstanceForm = UseFormReturnType<Record<string, unknown>>;
 
 export default function InstanceControls({ form, editing = false }: { form: InstanceForm; editing?: boolean }) {
+  useConfigurationForm(form);
   const { addToast } = useToast();
   const existing = useContext(EditingInstance);
   const [node, setNode] = useState(String(form.getValues().nodeUuid ?? ''));
@@ -74,7 +76,7 @@ export default function InstanceControls({ form, editing = false }: { form: Inst
     return <Alert>Enable runtime.incus.panel_extension in Wings and restart the daemon to create OS instances.</Alert>;
 
   const chooseKind = (kind: 'application' | NativeInstance['kind']) => {
-    const next = kind === 'application' ? null : { kind, image: '' };
+    const next = kind === 'application' ? null : { kind, image: '', config: {} };
     setInstance(next);
     form.setFieldValue('incusInstance', next);
     form.setFieldValue('eggUuid', next ? '7f9047ea-14c8-4f8f-a1de-f267ea740111' : '');
@@ -115,9 +117,16 @@ export default function InstanceControls({ form, editing = false }: { form: Inst
           error={form.errors.incusInstance}
           data={images
             .filter((image) => image.kind === instance.kind)
-            .map((image) => ({ value: image.alias, label: `${image.label} (${image.alias})` }))}
+            .map((image) => ({
+              value: image.alias,
+              label: `${image.label} (${image.alias})`,
+            }))}
           onChange={(image) => {
-            const next = { ...instance, image: image ?? '' };
+            const next = {
+              ...instance,
+              config: (form.getValues().incusInstance as NativeInstance).config,
+              image: image ?? '',
+            };
             setInstance(next);
             form.setFieldValue('incusInstance', next);
             form.setFieldValue('image', next.image);

@@ -25,7 +25,7 @@ impl Extension for ExtensionStruct {
                 )
             },
             |_server, data, _state| model::ApiMetadata {
-                incus_instance: data.instance,
+                incus_instance: data.instance.map(model::NativeInstance::without_config),
             },
         );
         AdminApiServer::extend(
@@ -61,10 +61,21 @@ impl Extension for ExtensionStruct {
         );
         Server::register_update_handler(
             ListenerPriority::Normal,
-            |server, options, _builder, _state, _transaction| {
+            |server, options, builder, _state, _transaction| {
                 Box::pin(async move {
                     let data = server.parse_model_extension::<model::ServerExtension>()?;
                     if let Some(instance) = data.instance {
+                        if let Ok(next) = model::UPDATING_INSTANCE.try_with(Clone::clone) {
+                            next.validate()?;
+                            model::require(
+                                next.kind == instance.kind && next.image == instance.image,
+                                "changing instance type or image requires a new server",
+                            )?;
+                            builder.set(
+                                "xyz_luxxy_incus_instance",
+                                Some(serde_json::to_value(next)?),
+                            );
+                        }
                         model::require(
                             options.egg_uuid.is_none_or(|egg| egg == model::OS_EGG),
                             "native instances require the OS template",
@@ -111,6 +122,7 @@ impl Extension for ExtensionStruct {
                     .routes(routes!(routes::runtime::route))
                     .routes(routes!(routes::images::route))
                     .routes(routes!(routes::admin_metadata::route))
+                    .routes(routes!(routes::update::route))
             })
             .add_client_server_api_router(|router| {
                 router.routes(routes!(routes::client_metadata::route))

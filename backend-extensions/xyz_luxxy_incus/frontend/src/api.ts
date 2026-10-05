@@ -5,9 +5,12 @@ import { parseFromApi } from '@/lib/serialization/api-transform.ts';
 export const instanceSchema = z.object({
   kind: z.enum(['container', 'virtual_machine']),
   image: z.string().min(1).max(255),
+  config: z.record(z.string().max(255), z.string().min(1).max(65536)).default({}),
 });
 export type NativeInstance = z.infer<typeof instanceSchema>;
-export const metadataSchema = z.object({ incusInstance: instanceSchema.nullable().default(null) });
+export const metadataSchema = z.object({
+  incusInstance: instanceSchema.nullable().default(null),
+});
 export const runtimeSchema = z.object({
   backend: z.string(),
   systemContainers: z.boolean(),
@@ -15,7 +18,11 @@ export const runtimeSchema = z.object({
   imageServer: z.string().nullable(),
   panelExtension: z.boolean().default(false),
 });
-export const imageSchema = z.object({ alias: z.string(), label: z.string(), kind: instanceSchema.shape.kind });
+export const imageSchema = z.object({
+  alias: z.string(),
+  label: z.string(),
+  kind: instanceSchema.shape.kind,
+});
 
 export async function getNodeRuntime(uuid: string) {
   const { data } = await axiosInstance.get(`/api/admin/incus/nodes/${uuid}/runtime`);

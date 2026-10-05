@@ -32,3 +32,15 @@ The migration adopts the previous native fork's `native_instance` metadata when 
 The extension uses form transforms for creation and editing, and supported frontend overrides for creation requests, edit metadata hydration and the native terminal. Application servers retain the original creation and console implementations. Native instance type and image changes require a new server.
 
 Terminal code is adapted from the Calagopus panel under its MIT license. Build outputs and local validation harnesses are not part of the extension package.
+
+## Instance configuration
+
+The extension replaces the create form's Variables card with Incus configuration for native OS instances and adds the same section to the edit form. Switches, integer inputs, selectors, and multiline fields cover the Incus 7.0.1 LTS native instance option catalog. Container and VM options are filtered by applicability. Dynamic families such as `environment.*`, `linux.sysctl.*`, `systemd.credential.*`, and `user.*` accept named keys.
+
+Stop an existing instance before editing configuration. The update endpoint requires `servers.update`, validates the values, and saves metadata in the standard server transaction before syncing Wings. Clearing a value removes that override; Wings tracks extension-managed keys to remove previous values on the next sync/start. Unspecified values retain Incus defaults, except Wings' isolated container ID mapping default.
+
+The normal resource controls own `limits.cpu`, `limits.cpu.allowance`, `limits.memory`, `limits.memory.swap`, and `limits.disk.priority`. Wings owns `boot.autostart`. These appear read-only here. Incus-generated `volatile.*`, application-only `oci.*`, and internal `user.wings.*` keys cannot be edited. Device, project, network, storage-pool, and daemon options are separate from instance config and are not part of this section. Hardware-dependent settings remain subject to Incus validation; configuring migration or snapshots does not add missing Wings transfer or backup support.
+
+Full configuration is available only through admin and authenticated node metadata. Client responses include instance type and image without configuration values. Update both the panel extension and Wings before using these controls.
+
+The catalog descriptions are derived from Incus v7.0.1 `internal/server/metadata/configuration.json`, under the Apache 2.0 license reproduced in `LICENSE.incus`. The metadata was narrowed to native instance options and annotated with Wings-managed settings. Reference: https://linuxcontainers.org/incus/docs/stable-7.0/reference/instance_options/.
