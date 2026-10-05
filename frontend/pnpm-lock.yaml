@@ -310,7 +310,19 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1(vite@8.3.1(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
 
+  ../backend-extensions/xyz_luxxy_incus/frontend:
+    dependencies:
+      shared:
+        specifier: workspace:*
+        version: link:../../../frontend/extensions/shared
+
   extensions/shared: {}
+
+  extensions/xyz_luxxy_incus:
+    dependencies:
+      shared:
+        specifier: workspace:*
+        version: link:../shared
 
 packages:
 

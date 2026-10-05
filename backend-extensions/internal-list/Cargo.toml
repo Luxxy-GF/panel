@@ -6,3 +6,4 @@ edition = { workspace = true }
 [dependencies]
 shared = { workspace = true }
 semver = { workspace = true }
+xyz_luxxy_incus = { path = "../xyz_luxxy_incus" }
