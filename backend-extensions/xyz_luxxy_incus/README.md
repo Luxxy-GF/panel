@@ -60,3 +60,7 @@ The upstream network must permit guest MAC addresses and the selected VLAN. Macv
 Deleting a server keeps its IP and custom MAC reserved until **Reconcile deleted instances** verifies both panel deletion and absence from the node's Incus inventory. A failed inventory request releases nothing. Pools with reserved addresses cannot be deleted or uninstalled, and a node with pools cannot be deleted until its pools are cleared.
 
 Reference: https://linuxcontainers.org/incus/docs/stable-7.0/reference/network_macvlan/.
+
+## Reinstall
+
+For native OS containers and VMs, the Reinstall dialog confirms deletion of the entire guest filesystem and Incus snapshots. Wings recreates the instance from its selected image, keeping the server UUID, network assignment, resource limits and saved Incus configuration. Egg scripts are not executed. Start on completion is optional; failures use the normal installation status. Update Wings and the extension together. Recreation cannot be cancelled once accepted. Configuration changes such as enabling nesting need a stop/start, not a reinstall.

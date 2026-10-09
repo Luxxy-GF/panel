@@ -7,10 +7,12 @@ import OriginalCreatePage from '@/pages/admin/servers/ServerCreate.tsx';
 import OriginalUpdate from '@/pages/admin/servers/ServerUpdate.tsx';
 import OriginalDetails from '@/pages/server/console/stats/ServerDetails.tsx';
 import OriginalTerminal from '@/pages/server/console/terminal/Console.tsx';
+import OriginalReinstallModal from '@/pages/server/settings/modals/SettingsReinstallModal.tsx';
 import ConfigurationCard from './ConfigurationCard.tsx';
 import Create from './createServer.ts';
 import DirectDetails from './DirectDetails.tsx';
 import DirectStatCard from './DirectStatCard.tsx';
+import NativeReinstallModal from './NativeReinstallModal.tsx';
 import PoolConfirmation from './PoolConfirmation.tsx';
 import CreatePage from './ServerCreate.tsx';
 import Update from './ServerUpdate.tsx';
@@ -22,6 +24,7 @@ function defineOverride<T>(original: T, replacement: NoInfer<T>) {
 }
 
 export default [
+  defineOverride(OriginalReinstallModal, NativeReinstallModal),
   defineOverride(OriginalConfirmation, PoolConfirmation),
   defineOverride(OriginalDetails, DirectDetails),
   defineOverride(OriginalStatCard, DirectStatCard),
